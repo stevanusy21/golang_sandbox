@@ -22,8 +22,9 @@ func main() {
 	myHandler := deliveryHttp.NewHandler(productUseCase)
 
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /product", myHandler.GetProductByID)
 	mux.HandleFunc("GET /products", myHandler.GetAllProducts)
-	mux.HandleFunc("POST /products", myHandler.CreateProduct)
+	mux.HandleFunc("POST /product", myHandler.CreateProduct)
 
 	port := ":8080"
 	fmt.Printf("Server is running on port %s\n", port)

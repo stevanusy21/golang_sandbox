@@ -1,8 +1,11 @@
 package http
 
 import (
+	"database/sql"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/stevanusy21/golang_sandbox/internal/domain"
 	"github.com/stevanusy21/golang_sandbox/internal/usecase"
@@ -18,6 +21,32 @@ func NewHandler(productUsecase *usecase.ProductUsecase) *Handler {
 	return &Handler{
 		productUsecase: productUsecase,
 	}
+}
+
+func (h *Handler) GetProductByID(w http.ResponseWriter, r *http.Request) {
+	idStr := r.URL.Query().Get("id")
+	if idStr == "" {
+		response.Error(w, http.StatusBadRequest, "ID produk harus diisi")
+		return
+	}
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		response.Error(w, http.StatusBadRequest, "ID produk tidak valid")
+		return
+	}
+
+	product, err := h.productUsecase.GetProductById(id)
+	if err == sql.ErrNoRows {
+		response.Error(w, http.StatusNotFound, fmt.Sprintf("Data product dengan id %d tidak ditemukan", id))
+		return
+	}
+	if err != nil {
+		response.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	response.JSON(w, http.StatusOK, product)
 }
 
 func (h *Handler) GetAllProducts(w http.ResponseWriter, r *http.Request) {

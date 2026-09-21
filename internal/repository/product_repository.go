@@ -16,6 +16,18 @@ func NewProductRepository(db *sql.DB) *ProductRepository {
 	return &ProductRepository{db: db}
 }
 
+func (r *ProductRepository) GetProductById(id int) (domain.Product, error) {
+	var p domain.Product
+	
+	query := "SELECT id, name, price FROM products WHERE id = $1"
+	err := r.db.QueryRow(query, id).Scan(&p.ID, &p.Name, &p.Price)
+	if err != nil {
+		return domain.Product{}, err
+	}
+
+	return p, nil
+}
+
 func (r *ProductRepository) GetAllProducts(filter domain.ProductFilter) ([]domain.Product, error) {
 	query := "SELECT id, name, price FROM products WHERE 1=1"
 

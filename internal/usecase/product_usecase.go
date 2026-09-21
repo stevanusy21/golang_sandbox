@@ -18,6 +18,10 @@ func NewProductUsecase(repo *repository.ProductRepository) *ProductUsecase {
 	}
 }
 
+func (u *ProductUsecase) GetProductById(id int) (domain.Product, error) {
+	return u.productRepo.GetProductById(id)
+}
+
 func (u *ProductUsecase) GetAllProducts(filter domain.ProductFilter) ([]domain.Product, error) {
 	return u.productRepo.GetAllProducts(filter)
 }
