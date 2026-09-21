@@ -1,0 +1,45 @@
+# Cache directories
+.go-work/
+
+# Compiled binaries and logs
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+*.log
+
+# Output directory for builds
+bin/
+dist/
+
+# Test coverage profiles
+*.coverprofile
+
+# Architecture specific extensions
+*.5
+*.6
+*.8
+
+# Environtments
+.env
+.env.*
+
+# IDE & Editor Settings
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# System Files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
