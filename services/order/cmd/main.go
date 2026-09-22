@@ -5,10 +5,10 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/stevanusy21/golang_sandbox/internal/config"
-	deliveryHttp "github.com/stevanusy21/golang_sandbox/internal/delivery/http"
-	"github.com/stevanusy21/golang_sandbox/internal/repository"
-	"github.com/stevanusy21/golang_sandbox/internal/usecase"
+	"github.com/stevanusy21/golang_sandbox/services/order/internal/config"
+	deliveryHttp "github.com/stevanusy21/golang_sandbox/services/order/internal/delivery/http"
+	"github.com/stevanusy21/golang_sandbox/services/order/internal/repository"
+	"github.com/stevanusy21/golang_sandbox/services/order/internal/usecase"
 )
 
 func main() {

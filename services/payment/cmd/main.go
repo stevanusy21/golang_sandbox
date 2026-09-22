@@ -5,7 +5,7 @@ import (
 	"net"
 
 	"github.com/stevanusy21/golang_sandbox/api/proto/payment"
-	deliveryGrpc "github.com/stevanusy21/golang_sandbox/internal/delivery/grpc"
+	deliveryGrpc "github.com/stevanusy21/golang_sandbox/services/payment/internal/delivery/grpc"
 	"google.golang.org/grpc"
 )
 

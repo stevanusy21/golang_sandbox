@@ -4,8 +4,8 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/stevanusy21/golang_sandbox/internal/domain"
-	"github.com/stevanusy21/golang_sandbox/internal/repository"
+	"github.com/stevanusy21/golang_sandbox/services/order/internal/domain"
+	"github.com/stevanusy21/golang_sandbox/services/order/internal/repository"
 )
 
 type ProductUsecase struct {

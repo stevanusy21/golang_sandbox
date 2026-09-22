@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/stevanusy21/golang_sandbox/internal/domain"
+	"github.com/stevanusy21/golang_sandbox/services/order/internal/domain"
 )
 
 type ProductRepository struct {

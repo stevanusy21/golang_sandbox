@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/stevanusy21/golang_sandbox/internal/domain"
-	"github.com/stevanusy21/golang_sandbox/internal/usecase"
+	"github.com/stevanusy21/golang_sandbox/services/order/internal/domain"
+	"github.com/stevanusy21/golang_sandbox/services/order/internal/usecase"
 	"github.com/stevanusy21/golang_sandbox/pkg/response"
 	"github.com/stevanusy21/golang_sandbox/pkg/utils"
 )
