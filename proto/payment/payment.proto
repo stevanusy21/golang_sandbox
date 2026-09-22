@@ -3,8 +3,9 @@ syntax = "proto3";
 package payment;
 
 option go_package = "github.com/stevanusy21/golang_sandbox/api/proto/payment;payment";
-
+// Service ini dikonsumsi secara internal oleh Order Service.
 service PaymentService {
+    // ProcessPayment memproses pembayaran untuk sebuah order.
     rpc ProcessPayment (PaymentRequest) returns (PaymentResponse);
 }
 

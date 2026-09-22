@@ -1,0 +1,7 @@
+CREATE TABLE orders (
+    id VARCHAR(50) PRIMARY KEY,
+    customer VARCHAR(100) NOT NULL,
+    total_amount NUMERIC(15, 2) NOT NULL,
+    status VARCHAR(20) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)

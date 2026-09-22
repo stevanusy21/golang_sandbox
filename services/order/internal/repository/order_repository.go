@@ -8,47 +8,57 @@ import (
 	"github.com/stevanusy21/golang_sandbox/services/order/internal/domain"
 )
 
-type ProductRepository struct {
+type OrderRepository struct {
 	db *sql.DB
 }
 
-func NewProductRepository(db *sql.DB) *ProductRepository {
-	return &ProductRepository{db: db}
+func NewOrderRepository(db *sql.DB) *OrderRepository {
+	return &OrderRepository{db: db}
 }
 
-func (r *ProductRepository) GetProductById(id int) (domain.Product, error) {
-	var p domain.Product
-	
-	query := "SELECT id, name, price FROM products WHERE id = $1"
-	err := r.db.QueryRow(query, id).Scan(&p.ID, &p.Name, &p.Price)
-	if err != nil {
-		return domain.Product{}, err
-	}
+func (r *OrderRepository) CreateOrder(order *domain.Order) error {
+	query := `INSERT INTO orders (id, customer, total_amount, status, created_at) VALUES ($1, $2, $3, $4, $5)`
 
-	return p, nil
+	_, err := r.db.Exec(query, order.Id, order.Customer, order.TotalAmount, order.Status, order.CreatedAt)
+
+	return err;
 }
 
-func (r *ProductRepository) GetAllProducts(filter domain.ProductFilter) ([]domain.Product, error) {
-	query := "SELECT id, name, price FROM products WHERE 1=1"
+func (r *OrderRepository) UpdateStatus(orderId string, status string) error {
+	query := `UPDATE orders SET status = $1 WHERE id = $2`
+
+	_, err := r.db.Exec(query, status, orderId)
+
+	return err;
+}
+
+func (r *OrderRepository) GetAllOrders(filter domain.OrderFilter) ([]domain.Order, error) {
+	query := "SELECT id, customer, total_amount, status, created_at FROM orders WHERE 1 = 1"
 
 	args := []any{}
 	paramIndex := 1
 
-	if filter.ID != "" {
+	if filter.Id != "" {
 		query += fmt.Sprintf(" AND id = $%d", paramIndex)
-		args = append(args, filter.ID)
+		args = append(args, filter.Id)
 		paramIndex++
 	}
 
-	if filter.Name != "" {
-		query += fmt.Sprintf(" AND name ILIKE $%d", paramIndex)
-		args = append(args, "%"+filter.Name+"%")
+	if filter.Customer != "" {
+		query += fmt.Sprintf(" AND customer ILIKE $%d", paramIndex)
+		args = append(args, filter.Customer)
 		paramIndex++
 	}
 
-	if filter.Price != "" {
-		query += fmt.Sprintf(" AND price = $%d", paramIndex)
-		args = append(args, filter.Price)
+	if filter.TotalAmount != "" {
+		query += fmt.Sprintf(" AND total_amount = $%d", paramIndex)
+		args = append(args, filter.TotalAmount)
+		paramIndex++
+	}
+
+	if filter.Status != "" {
+		query += fmt.Sprintf(" AND status = $%d", paramIndex)
+		args = append(args, filter.Status)
 		paramIndex++
 	}
 
@@ -64,33 +74,22 @@ func (r *ProductRepository) GetAllProducts(filter domain.ProductFilter) ([]domai
 
 	defer rows.Close()
 
-	var products []domain.Product
+	var orders []domain.Order
 	for rows.Next() {
-		var p domain.Product
+		var order domain.Order
 		
-		err := rows.Scan(&p.ID, &p.Name, &p.Price)
+		err := rows.Scan(&order.Id, &order.Customer, &order.TotalAmount, &order.Status, &order.CreatedAt)
 		if err != nil {
 			log.Println("Error saat scan data:", err)
 			continue
 		}
 
-		products = append(products, p)
+		orders = append(orders, order)
 	}
 
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
 
-	return products, nil
-}
-
-func (r *ProductRepository) CreateProduct(product *domain.Product) error {
-	query := "INSERT INTO products (name, price) VALUES ($1, $2) RETURNING id"
-
-	err := r.db.QueryRow(query, product.Name, product.Price).Scan(&product.ID)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return orders, nil
 }

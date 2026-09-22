@@ -1,39 +1,63 @@
 package usecase
 
 import (
-	"errors"
-	"strings"
+	"context"
+	"fmt"
+	"time"
 
+	"github.com/stevanusy21/golang_sandbox/api/proto/payment"
 	"github.com/stevanusy21/golang_sandbox/services/order/internal/domain"
 	"github.com/stevanusy21/golang_sandbox/services/order/internal/repository"
 )
 
-type ProductUsecase struct {
-	productRepo *repository.ProductRepository
+type OrderUsecase struct {
+	orderRepo *repository.OrderRepository
+	paymentClient payment.PaymentServiceClient
 }
 
-func NewProductUsecase(repo *repository.ProductRepository) *ProductUsecase {
-	return &ProductUsecase{
-		productRepo: repo,
+func NewOrderUsecase(repo *repository.OrderRepository, payClient payment.PaymentServiceClient) *OrderUsecase {
+	return &OrderUsecase{
+		orderRepo: repo,
+		paymentClient: payClient,
 	}
 }
 
-func (u *ProductUsecase) GetProductById(id int) (domain.Product, error) {
-	return u.productRepo.GetProductById(id)
-}
+func (u *OrderUsecase) CreateOrder(order *domain.Order, paymentMethod string) error {
+	order.Id = fmt.Sprintf("ORD-%d", time.Now().UnixMilli())
+	order.Status = "PENDING"
+	order.CreatedAt = time.Now()
 
-func (u *ProductUsecase) GetAllProducts(filter domain.ProductFilter) ([]domain.Product, error) {
-	return u.productRepo.GetAllProducts(filter)
-}
-
-func (u *ProductUsecase) CreateProduct(product *domain.Product) error {
-	if strings.TrimSpace(product.Name) == "" {
-		return errors.New("Nama produk tidak boleh kosong")
+	err := u.orderRepo.CreateOrder(order)
+	if err != nil {
+		return fmt.Errorf("Gagal menyimpan order ke database: %v", err)
 	}
 
-	if product.Price <= 0 {
-		return errors.New("Harga produk minimal 0 rupiah")
-	} 
+	req := &payment.PaymentRequest{
+		OrderId: order.Id,
+		Amount: order.TotalAmount,
+		PaymentMethod: paymentMethod,
+	}
 
-	return u.productRepo.CreateProduct(product)
+	ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
+	
+	defer cancel()
+
+	res, err := u.paymentClient.ProcessPayment(ctx, req)
+	if err != nil {
+		u.orderRepo.UpdateStatus(order.Id, "FAILED")
+		return fmt.Errorf("Gagal menghubungi payment service: %v", err)
+	}
+
+	if res.IsSuccess {
+		u.orderRepo.UpdateStatus(order.Id, "PAID")
+	} else {
+		u.orderRepo.UpdateStatus(order.Id, "FAILED")
+		return fmt.Errorf("Pembayaran ditolak: %s", res.Message)
+	}
+
+	return nil
+}
+
+func (u *OrderUsecase) GetAllOrders(filter domain.OrderFilter) ([]domain.Order, error) {
+	return u.orderRepo.GetAllOrders(filter)
 }

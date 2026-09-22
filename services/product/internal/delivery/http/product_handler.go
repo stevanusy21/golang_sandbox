@@ -7,23 +7,23 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/stevanusy21/golang_sandbox/services/order/internal/domain"
-	"github.com/stevanusy21/golang_sandbox/services/order/internal/usecase"
+	"github.com/stevanusy21/golang_sandbox/services/product/internal/domain"
+	"github.com/stevanusy21/golang_sandbox/services/product/internal/usecase"
 	"github.com/stevanusy21/golang_sandbox/pkg/response"
 	"github.com/stevanusy21/golang_sandbox/pkg/utils"
 )
 
-type Handler struct {
+type ProductHandler struct {
 	productUsecase *usecase.ProductUsecase
 }
 
-func NewHandler(productUsecase *usecase.ProductUsecase) *Handler {
-	return &Handler{
+func NewProductHandler(productUsecase *usecase.ProductUsecase) *ProductHandler {
+	return &ProductHandler{
 		productUsecase: productUsecase,
 	}
 }
 
-func (h *Handler) GetProductByID(w http.ResponseWriter, r *http.Request) {
+func (h *ProductHandler) GetProductByID(w http.ResponseWriter, r *http.Request) {
 	idStr := r.URL.Query().Get("id")
 	if idStr == "" {
 		response.Error(w, http.StatusBadRequest, "ID produk harus diisi")
@@ -49,7 +49,7 @@ func (h *Handler) GetProductByID(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, product)
 }
 
-func (h *Handler) GetAllProducts(w http.ResponseWriter, r *http.Request) {
+func (h *ProductHandler) GetAllProducts(w http.ResponseWriter, r *http.Request) {
 	allowedColumns := map[string]bool{
 		"id": true,
 		"name": true,
@@ -78,7 +78,7 @@ func (h *Handler) GetAllProducts(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, products)
 }
 
-func (h *Handler) CreateProduct(w http.ResponseWriter, r *http.Request) {
+func (h *ProductHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 	var input domain.Product
 
 	err := json.NewDecoder(r.Body).Decode(&input)
