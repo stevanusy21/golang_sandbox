@@ -29,10 +29,31 @@ func (u *ProductUsecase) CreateProduct(product *domain.Product) error {
 	if strings.TrimSpace(product.Name) == "" {
 		return errors.New("Nama produk tidak boleh kosong")
 	}
-	if product.Price <= 0 {
+	if product.Price < 0 {
 		return errors.New("Harga produk minimal 0 rupiah")
-	} 
+	}
+	if product.Stock < 0 {
+		return errors.New("Stock produk minimal 0")
+	}
 
 	return u.productRepo.CreateProduct(product)
 
+}
+
+func (u *ProductUsecase) UpdateProduct(product *domain.Product) error {
+	if strings.TrimSpace(product.Name) == "" {
+		return errors.New("Nama produk tidak boleh kosong")
+	}
+	if product.Price < 0 {
+		return errors.New("Harga produk minimal 0 rupiah")
+	}
+	if product.Stock < 0 {
+		return errors.New("Stock produk minimal 0")
+	}
+
+	return u.productRepo.UpdateProduct(product)
+}
+
+func (u *ProductUsecase) DeleteProduct(id int) error {
+	return u.productRepo.DeleteProduct(id)
 }

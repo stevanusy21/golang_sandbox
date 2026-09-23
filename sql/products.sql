@@ -5,3 +5,6 @@ CREATE TABLE products (
 );
 
 INSERT INTO products (name, price) VALUES ('Kopi Hitam', 15000.00);
+
+ALTER TABLE products ADD stocks INT DEFAULT 0;
+ALTER TABLE products ADD status VARCHAR(20) DEFAULT 'ACTIVE';

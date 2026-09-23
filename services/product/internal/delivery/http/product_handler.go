@@ -6,11 +6,12 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
-	"github.com/stevanusy21/golang_sandbox/services/product/internal/domain"
-	"github.com/stevanusy21/golang_sandbox/services/product/internal/usecase"
 	"github.com/stevanusy21/golang_sandbox/pkg/response"
 	"github.com/stevanusy21/golang_sandbox/pkg/utils"
+	"github.com/stevanusy21/golang_sandbox/services/product/internal/domain"
+	"github.com/stevanusy21/golang_sandbox/services/product/internal/usecase"
 )
 
 type ProductHandler struct {
@@ -54,12 +55,22 @@ func (h *ProductHandler) GetAllProducts(w http.ResponseWriter, r *http.Request) 
 		"id": true,
 		"name": true,
 		"price": true,
+		"stock": true,
+		"status": true,
+	}
+
+	statusQuery := r.URL.Query().Get("status")
+	statusSlice := []string{}
+
+	if statusQuery != "" {
+		statusSlice = strings.Split(statusQuery, ",")
 	}
 	
 	filter := domain.ProductFilter{
 		ID: r.URL.Query().Get("id"),
 		Name: r.URL.Query().Get("name"),
 		Price: r.URL.Query().Get("price"),
+		Status: statusSlice,
 		Pagination: utils.GeneratePagination(
 			r.URL.Query().Get("page"),
 			r.URL.Query().Get("limit"),
@@ -94,4 +105,58 @@ func (h *ProductHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.JSON(w, http.StatusCreated, input)
+}
+
+func (h *ProductHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
+	idStr := r.URL.Query().Get("id")
+	if idStr == "" {
+		response.Error(w, http.StatusBadRequest, "ID produk harus diisi")
+		return
+	}
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		response.Error(w, http.StatusBadRequest, "ID produk tidak valid")
+		return
+	}
+
+	var input domain.Product
+
+	err = json.NewDecoder(r.Body).Decode(&input)
+	if err != nil {
+		response.Error(w, http.StatusBadRequest, "Format JSON tidak valid")
+		return
+	}
+
+	input.ID = id
+
+	err = h.productUsecase.UpdateProduct(&input)
+	if err != nil {
+		response.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	response.JSON(w, http.StatusOK, input)
+}
+
+func (h *ProductHandler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
+	idStr := r.URL.Query().Get("id")
+	if idStr == "" {
+		response.Error(w, http.StatusBadRequest, "ID produk harus diisi")
+		return
+	}
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		response.Error(w, http.StatusBadRequest, "ID produk tidak valid")
+		return
+	}
+
+	err = h.productUsecase.DeleteProduct(id)
+	if err != nil {
+		response.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	response.JSON(w, http.StatusOK, "Produk berhasil di hapus!")
 }

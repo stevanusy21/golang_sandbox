@@ -19,8 +19,8 @@ func NewProductRepository(db *sql.DB) *ProductRepository {
 func (r *ProductRepository) GetProductById(id int) (domain.Product, error) {
 	var p domain.Product
 	
-	query := "SELECT id, name, price FROM products WHERE id = $1"
-	err := r.db.QueryRow(query, id).Scan(&p.ID, &p.Name, &p.Price)
+	query := "SELECT id, name, price, stock, status FROM products WHERE id = $1"
+	err := r.db.QueryRow(query, id).Scan(&p.ID, &p.Name, &p.Price, &p.Stock, &p.Status)
 	if err != nil {
 		return domain.Product{}, err
 	}
@@ -29,7 +29,7 @@ func (r *ProductRepository) GetProductById(id int) (domain.Product, error) {
 }
 
 func (r *ProductRepository) GetAllProducts(filter domain.ProductFilter) ([]domain.Product, error) {
-	query := "SELECT id, name, price FROM products WHERE 1=1"
+	query := "SELECT id, name, price, stock, status FROM products WHERE 1=1"
 
 	args := []any{}
 	paramIndex := 1
@@ -52,6 +52,12 @@ func (r *ProductRepository) GetAllProducts(filter domain.ProductFilter) ([]domai
 		paramIndex++
 	}
 
+	if len(filter.Status) > 0 {
+		query += fmt.Sprintf(" AND status = ANY($%d)", paramIndex)
+		args = append(args, filter.Status)
+		paramIndex++
+	}
+
 	query += filter.BuildOrderBy()
 
 	query += fmt.Sprintf(" LIMIT $%d OFFSET $%d", paramIndex, paramIndex+1)
@@ -68,7 +74,7 @@ func (r *ProductRepository) GetAllProducts(filter domain.ProductFilter) ([]domai
 	for rows.Next() {
 		var p domain.Product
 		
-		err := rows.Scan(&p.ID, &p.Name, &p.Price)
+		err := rows.Scan(&p.ID, &p.Name, &p.Price, &p.Stock, &p.Status)
 		if err != nil {
 			log.Println("Error saat scan data:", err)
 			continue
@@ -85,12 +91,28 @@ func (r *ProductRepository) GetAllProducts(filter domain.ProductFilter) ([]domai
 }
 
 func (r *ProductRepository) CreateProduct(product *domain.Product) error {
-	query := "INSERT INTO products (name, price) VALUES ($1, $2) RETURNING id"
+	query := "INSERT INTO products (name, price, stock, status) VALUES ($1, $2, $3, $4) RETURNING id"
 
-	err := r.db.QueryRow(query, product.Name, product.Price).Scan(&product.ID)
+	err := r.db.QueryRow(query, product.Name, product.Price, product.Stock, "NEW_ADDED").Scan(&product.ID)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (r *ProductRepository) UpdateProduct(product *domain.Product) error {
+	query := "UPDATE products SET name = $1, price = $2, stock = $3, status = $4 WHERE id = $5"
+
+	_, err := r.db.Exec(query, product.Name, product.Price, product.Stock, product.Status, product.ID)
+
+	return err;
+}
+
+func (r *ProductRepository) DeleteProduct(id int) error {
+	query := "UPDATE products SET status = 'DELETED' WHERE id = $1"
+
+	_, err := r.db.Exec(query, id)
+
+	return err;
 }

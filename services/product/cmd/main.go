@@ -25,8 +25,10 @@ func main() {
 	mux.HandleFunc("GET /product", productHandler.GetProductByID)
 	mux.HandleFunc("GET /products", productHandler.GetAllProducts)
 	mux.HandleFunc("POST /product", productHandler.CreateProduct)
+	mux.HandleFunc("PUT /product", productHandler.UpdateProduct)
+	mux.HandleFunc("DELETE /product", productHandler.DeleteProduct)
 
-	port := ":8080"
+	port := ":8081"
 	fmt.Printf("Server is running on port %s\n", port)
 
 	err := http.ListenAndServe(port, mux)
