@@ -25,7 +25,8 @@ dist/
 
 # Environtments
 .env
-.env.*
+.env.development
+.env.production
 
 # IDE & Editor Settings
 .vscode/

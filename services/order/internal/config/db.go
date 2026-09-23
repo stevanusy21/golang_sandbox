@@ -4,22 +4,29 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"os"
+
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-func InitDB() *sql.DB {
-	dsn := "postgres://postgres:indocyber@localhost:5432/golang"
+func ConnectDB() (*sql.DB, error) {
+	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+		os.Getenv("DB_HOST"),
+		os.Getenv("DB_PORT"),
+		os.Getenv("DB_USERNAME"),
+		os.Getenv("DB_PASSWORD"),
+		os.Getenv("DB_NAME"),
+	)
 
 	db, err := sql.Open("pgx", dsn)
 	if err != nil {
-		log.Fatalf("Gagal membuka koneksi database: %v", err)
+		return nil, fmt.Errorf("Gagal membuka koneksi database: %v", err)
 	}
 
-	err = db.Ping()
-	if err != nil {
-		log.Fatalf("Gagal melakukan ping ke database: %v", err)
+	if err := db.Ping(); err != nil {
+		return nil, fmt.Errorf("Gagal melakukan ping ke database: %v", err)
 	}
 
-	fmt.Println("Berhasil terhubung ke PostgreSql!")
-	return db
+	log.Println("Berhasil terhubung ke PostgreSql!")
+	return db, nil
 }

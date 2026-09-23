@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
+	"github.com/joho/godotenv"
 	"github.com/stevanusy21/golang_sandbox/api/proto/payment"
 	"github.com/stevanusy21/golang_sandbox/services/order/internal/config"
 	deliveryHttp "github.com/stevanusy21/golang_sandbox/services/order/internal/delivery/http"
@@ -15,7 +17,15 @@ import (
 )
 
 func main() {
-	db := config.InitDB()
+	err := godotenv.Load("services/order/.env")
+	if err != nil {
+		log.Println("File .env tidak ditemukan, menggunakan environment variables sistem")
+	}
+
+	db, err := config.ConnectDB()
+	if err != nil {
+		log.Fatalf("Gagal konek ke Database: %v", err)
+	}
 	defer db.Close()
 
 	log.Println("Mencoba konek ke Payment Service (gRPC) di localhost:50051...")
@@ -36,7 +46,7 @@ func main() {
 	mux.HandleFunc("GET /orders", orderHandler.GetAllOrders)
 	mux.HandleFunc("GET /order", orderHandler.GetOrderById)
 
-	port := ":8080"
+	port := fmt.Sprintf(":%s", os.Getenv("APP_PORT"))
 	fmt.Printf("Order Service (HTTP) berjalan di port %s\n", port)
 
 	if err := http.ListenAndServe(port, mux); err != nil {
