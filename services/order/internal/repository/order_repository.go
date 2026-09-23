@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-
 	"github.com/stevanusy21/golang_sandbox/services/order/internal/domain"
 )
 
@@ -92,4 +91,17 @@ func (r *OrderRepository) GetAllOrders(filter domain.OrderFilter) ([]domain.Orde
 	}
 
 	return orders, nil
+}
+
+func (r *OrderRepository) GetOrderById(id string) (domain.Order, error) {
+	query := "SELECT id, customer, total_amount, status, created_at FROM orders WHERE id = $1"
+
+	var order domain.Order
+
+	err := r.db.QueryRow(query, id).Scan(&order.Id, &order.Customer, &order.TotalAmount, &order.Status, &order.CreatedAt)
+	if err != nil {
+		return domain.Order{}, err
+	}
+
+	return order, nil
 }

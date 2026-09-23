@@ -61,3 +61,7 @@ func (u *OrderUsecase) CreateOrder(order *domain.Order, paymentMethod string) er
 func (u *OrderUsecase) GetAllOrders(filter domain.OrderFilter) ([]domain.Order, error) {
 	return u.orderRepo.GetAllOrders(filter)
 }
+
+func (u *OrderUsecase) GetOrderById(id string) (domain.Order, error) {
+	return u.orderRepo.GetOrderById(id)
+}

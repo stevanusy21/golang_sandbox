@@ -34,6 +34,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /checkout", orderHandler.Checkout)
 	mux.HandleFunc("GET /orders", orderHandler.GetAllOrders)
+	mux.HandleFunc("GET /order", orderHandler.GetOrderById)
 
 	port := ":8080"
 	fmt.Printf("Order Service (HTTP) berjalan di port %s\n", port)

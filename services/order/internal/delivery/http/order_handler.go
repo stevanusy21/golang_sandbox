@@ -83,3 +83,20 @@ func (h *OrderHandler) GetAllOrders(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, orders)
 }
 
+func (h *OrderHandler) GetOrderById(w http.ResponseWriter, r *http.Request) {
+	id := r.URL.Query().Get("id")
+
+	if id == "" {
+		response.Error(w, http.StatusBadRequest, "Id order harus diisi")
+		return
+	}
+
+	order, err := h.orderUsecase.GetOrderById(id)
+	if err != nil {
+		response.Error(w, http.StatusNotFound, err.Error())
+		return
+	}
+
+	response.JSON(w, http.StatusOK, order)
+}
+
