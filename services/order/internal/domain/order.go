@@ -24,6 +24,6 @@ type OrderFilter struct {
 	Id string
 	Customer string
 	TotalAmount string
-	Status string
+	Status []string
 	utils.Pagination
 }

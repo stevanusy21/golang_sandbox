@@ -56,8 +56,8 @@ func (r *OrderRepository) GetAllOrders(filter domain.OrderFilter) ([]domain.Orde
 		paramIndex++
 	}
 
-	if filter.Status != "" {
-		query += fmt.Sprintf(" AND status = $%d", paramIndex)
+	if len(filter.Status) > 0 {
+		query += fmt.Sprintf(" AND status = ANY($%d)", paramIndex)
 		args = append(args, filter.Status)
 		paramIndex++
 	}

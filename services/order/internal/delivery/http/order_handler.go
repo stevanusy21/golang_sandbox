@@ -3,6 +3,7 @@ package http
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/stevanusy21/golang_sandbox/pkg/response"
 	"github.com/stevanusy21/golang_sandbox/pkg/utils"
@@ -51,12 +52,19 @@ func (h *OrderHandler) GetAllOrders(w http.ResponseWriter, r *http.Request) {
 		"name": true,
 		"price": true,
 	}
+
+	statusQuery := r.URL.Query().Get("status")
+	statusSlice := []string{}
+
+	if statusQuery != "" {
+		statusSlice = strings.Split(statusQuery, ",")
+	}
 	
 	filter := domain.OrderFilter{
 		Id: r.URL.Query().Get("id"),
 		Customer: r.URL.Query().Get("customer"),
 		TotalAmount: r.URL.Query().Get("total_amount"),
-		Status: r.URL.Query().Get("status"),
+		Status: statusSlice,
 		Pagination: utils.GeneratePagination(
 			r.URL.Query().Get("page"),
 			r.URL.Query().Get("limit"),
