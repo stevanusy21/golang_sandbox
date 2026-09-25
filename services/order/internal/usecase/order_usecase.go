@@ -48,9 +48,7 @@ func (u *OrderUsecase) CreateOrder(order *domain.Order, paymentMethod string) er
 		return fmt.Errorf("Gagal menghubungi payment service: %v", err)
 	}
 
-	if res.IsSuccess {
-		u.orderRepo.UpdateStatus(order.Id, "PAID")
-	} else {
+	if !res.IsSuccess {
 		u.orderRepo.UpdateStatus(order.Id, "FAILED")
 		return fmt.Errorf("Pembayaran ditolak: %s", res.Message)
 	}

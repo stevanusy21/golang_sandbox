@@ -1,0 +1,19 @@
+$kind: http-request
+url: "{{urlProduct}}/product?id=4"
+method: PUT
+queryParams:
+  id: "4"
+body:
+  type: json
+  content: "  {\r
+
+    \    \"name\": \"Kopi Susu\",\r
+
+    \    \"price\": 25000,\r
+
+    \    \"stock\": 10,\r
+
+    \    \"status\": \"ACTIVE\"\r
+
+    \  }"
+order: 4213789251398235

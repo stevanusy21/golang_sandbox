@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{urlProduct}}/product"
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \  \"name\": \"Kopi Susu\",\r
+
+    \  \"price\": 20000.00\r
+
+    }"
+order: 4005416706451598

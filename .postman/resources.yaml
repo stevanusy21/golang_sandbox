@@ -1,0 +1,7 @@
+# Use this workspace to collaborate
+workspace:
+  id: 665ab520-12fe-4587-8075-49eb56bb95e7
+
+localResources:
+  specs:
+    - ../proto/payment/payment.proto

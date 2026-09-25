@@ -1,0 +1,10 @@
+$kind: http-request
+url: "{{urlProduct}}/products?page=1&limit=10&sort_by=id&sort_dir=desc&status=NEW_ADDED"
+method: GET
+queryParams:
+  page: "1"
+  limit: "10"
+  sort_by: id
+  sort_dir: desc
+  status: NEW_ADDED
+order: 2749638150688744

@@ -1,0 +1,17 @@
+$kind: http-request
+url: "{{urlOrder}}/orders?page=1&limit=5"
+method: GET
+queryParams:
+  - key: page
+    value: "1"
+    disabled: false
+    description: ""
+  - key: limit
+    value: "5"
+    disabled: false
+    description: ""
+  - key: status
+    value: PAID
+    disabled: true
+    description: ""
+order: 2819217295177947

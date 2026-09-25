@@ -1,0 +1,15 @@
+$kind: http-request
+url: "{{urlOrder}}/checkout"
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \    \"customer\": \"Jason\",\r
+
+    \    \"total_amount\": 10500,\r
+
+    \    \"payment_method\": \"GOPAY\"\r
+
+    }"
+order: 1790320578597

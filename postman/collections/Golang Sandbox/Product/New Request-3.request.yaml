@@ -1,0 +1,7 @@
+$kind: http-request
+name: New Request
+url: "{{urlProduct}}/product?id=6"
+method: DELETE
+queryParams:
+  id: "6"
+order: 4485173840866407

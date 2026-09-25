@@ -100,3 +100,6 @@ func (h *OrderHandler) GetOrderById(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, order)
 }
 
+func (h *OrderHandler) UpdateCheckoutPaymentStatus(w http.ResponseWriter, r *http.Request) {
+	
+}

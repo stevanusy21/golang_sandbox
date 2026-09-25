@@ -8,7 +8,11 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/stevanusy21/golang_sandbox/api/proto/payment"
+	"github.com/stevanusy21/golang_sandbox/services/payment/internal/config"
 	deliveryGrpc "github.com/stevanusy21/golang_sandbox/services/payment/internal/delivery/grpc"
+	"github.com/stevanusy21/golang_sandbox/services/payment/internal/gateway"
+	"github.com/stevanusy21/golang_sandbox/services/payment/internal/repository"
+	"github.com/stevanusy21/golang_sandbox/services/payment/internal/usecase"
 	"google.golang.org/grpc"
 )
 
@@ -18,7 +22,20 @@ func main() {
 		log.Println("File .env tidak ditemukan, menggunakan environment variables sistem")
 	}
 
-	paymentHandler := deliveryGrpc.NewPaymentHandler()
+	db, err := config.ConnectDB()
+	if err != nil {
+		log.Fatalf("Gagal terhubung ke database: %v", err)
+	}
+	defer db.Close()
+
+	serverKey := os.Getenv("MIDTRANS_SERVER_KEY")
+	isProduction := os.Getenv("MIDTRANS_PRODUCTION") == "true"
+
+	midtransGateway := gateway.NewMidtransGateway(serverKey, isProduction)
+	
+	paymentRepo := repository.NewPaymentRepository(db)
+	paymentUsecase := usecase.NewPaymentUsecase(paymentRepo, midtransGateway)
+	paymentHandler := deliveryGrpc.NewPaymentHandler(paymentUsecase)
 
 	grpcServer := grpc.NewServer()
 

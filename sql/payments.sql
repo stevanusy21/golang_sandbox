@@ -1,7 +1,10 @@
-CREATE TABLE payments (
-    id VARCHAR(50) PRIMARY KEY,
+CREATE TABLE payment_records (
+    id BIGSERIAL PRIMARY KEY,
     order_id VARCHAR(50) NOT NULL,
-    total_amount NUMERIC(15, 2) NOT NULL,
-    status VARCHAR(20) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    amount NUMERIC(15, 2) NOT NULL,
+    payment_method VARCHAR(50) NOT NULL,
+    transaction_id VARCHAR(100) NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )
