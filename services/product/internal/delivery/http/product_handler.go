@@ -104,7 +104,7 @@ func (h *ProductHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.JSON(w, http.StatusCreated, input)
+	response.JSON(w, http.StatusCreated, &input)
 }
 
 func (h *ProductHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {

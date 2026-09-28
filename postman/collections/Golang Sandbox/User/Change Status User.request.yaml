@@ -1,0 +1,11 @@
+$kind: http-request
+url: "{{urlUser}}/users/4/status"
+method: PATCH
+body:
+  type: json
+  content: "{\r
+
+    \    \"status\": \"ACTIVE\"\r
+
+    }\r\n"
+order: 4166992185179836

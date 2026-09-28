@@ -2,3 +2,4 @@ $kind: collection
 variables:
   urlOrder: ""
   urlProduct: ""
+  urlUser: ""

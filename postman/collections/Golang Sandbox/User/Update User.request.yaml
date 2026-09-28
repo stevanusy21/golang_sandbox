@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{urlUser}}/users/4/profile"
+method: PATCH
+body:
+  type: json
+  content: "{\r
+
+    \    \"username\": null,\r
+
+    \    \"email\": null\r
+
+    }"
+order: 4036365098244437
