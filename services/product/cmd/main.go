@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 
@@ -17,12 +16,12 @@ import (
 func main() {
 	err := godotenv.Load("services/product/.env")
 	if err != nil {
-		log.Println("File .env tidak ditemukan, menggunakan environment variables sistem")
+		utils.LogErrorNoValue("Product Service", "File .env tidak ditemukan, menggunakan environment variables sistem")
 	}
 
 	db, err := utils.ConnectDB("pgx", os.Getenv("DB_DSN"))
 	if err != nil {
-		log.Fatalf("Gagal konek ke Database: %v", err)
+		utils.LogFatal("Product Service", "Gagal konek ke Database", err)
 	}
 	defer db.Close()
 
@@ -38,9 +37,9 @@ func main() {
 	mux.HandleFunc("DELETE /products/{id}", productHandler.DeleteProduct)
 
 	port := fmt.Sprintf(":%s", os.Getenv("APP_PORT"))
-	fmt.Printf("Product Service (HTTP) berjalan di port %s\n", port)
+	utils.LogInfo("Product Service", "Product Service (HTTP) berjalan di port "+port)
 
 	if err := http.ListenAndServe(port, mux); err != nil {
-		log.Fatalf("Server gagal berjalan: %v", err)
+		utils.LogFatal("Product Service", "Server gagal berjalan", err)
 	}
 }

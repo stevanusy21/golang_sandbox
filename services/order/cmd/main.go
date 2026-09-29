@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 
@@ -20,19 +19,19 @@ import (
 func main() {
 	err := godotenv.Load("services/order/.env")
 	if err != nil {
-		log.Println("File .env tidak ditemukan, menggunakan environment variables sistem")
+		utils.LogErrorNoValue("Order Service", "File .env tidak ditemukan, menggunakan environment variables sistem")
 	}
 
 	db, err := utils.ConnectDB("pgx", os.Getenv("DB_DSN"))
 	if err != nil {
-		log.Fatalf("Gagal konek ke Database: %v", err)
+		utils.LogFatal("Order Service", "Gagal konek ke Database", err)
 	}
 	defer db.Close()
 
-	log.Println("Mencoba konek ke Payment Service (gRPC) di localhost:50051...")
+	utils.LogInfo("Order Service", "Mencoba konek ke Payment Service (gRPC) di localhost:50051...")
 	grpcConn, err := grpc.NewClient("localhost:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		log.Fatalf("Gagal konek ke Payment Service: %v", err)
+		utils.LogFatal("Order Service", "Gagal konek ke Payment Service", err)
 	}
 	defer grpcConn.Close()
 
@@ -48,9 +47,9 @@ func main() {
 	mux.HandleFunc("GET /orders/{id}", orderHandler.GetOrderById)
 
 	port := fmt.Sprintf(":%s", os.Getenv("APP_PORT"))
-	fmt.Printf("Order Service (HTTP) berjalan di port %s\n", port)
+	utils.LogInfo("Order Service", "Order Service (HTTP) berjalan di port "+port)
 
 	if err := http.ListenAndServe(port, mux); err != nil {
-		log.Fatalf("Server gagal berjalan: %v", err)
+		utils.LogFatal("Order Service", "Server gagal berjalan", err)
 	}
 }

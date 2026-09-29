@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 
@@ -17,12 +16,12 @@ import (
 func main() {
 	err := godotenv.Load("services/user/.env")
 	if err != nil {
-		log.Println("File Env tidak ditemukan, menggunakan environment variables sistem")
+		utils.LogErrorNoValue("User Service", "File Env tidak ditemukan, menggunakan environment variables sistem")
 	}
 
 	db, err := utils.ConnectDB("pgx", os.Getenv("DB_DSN"))
 	if err != nil {
-		log.Fatalf("Gagal terhubung ke database: %v", err)
+		utils.LogFatal("User Service", "Gagal terhubung ke database", err)
 	}
 	defer db.Close()
 
@@ -38,9 +37,9 @@ func main() {
 	mux.HandleFunc("GET /users/{id}", userHandler.GetUserById)
 
 	port := fmt.Sprintf(":%s", os.Getenv("APP_PORT"))
-	fmt.Printf("User Service (HTTP) berjalan di port %s\n", port)
+	utils.LogInfo("User Service", "User Service (HTTP) berjalan di port "+port)
 
 	if err := http.ListenAndServe(port, mux); err != nil {
-		log.Fatalf("Server gagal berjalan: %v", err)
+		utils.LogFatal("User Service", "Server gagal berjalan", err)
 	}
 }
