@@ -60,11 +60,11 @@ func (h *ProductHandler) GetAllProducts(w http.ResponseWriter, r *http.Request) 
 	}
 
 	filter := domain.ProductFilter{
-		ID:     r.URL.Query().Get("id"),
+		Id:     r.URL.Query().Get("id"),
 		Name:   r.URL.Query().Get("name"),
 		Price:  r.URL.Query().Get("price"),
 		Status: statusSlice,
-		Pagination: utils.GeneratePagination(
+		Pagination: utils.GeneratePaginationData(
 			r.URL.Query().Get("page"),
 			r.URL.Query().Get("limit"),
 			r.URL.Query().Get("sort_by"),

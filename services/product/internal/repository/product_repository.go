@@ -62,8 +62,8 @@ func (r *ProductRepository) GetAllProducts(filter domain.ProductFilter) ([]domai
 		WHERE 1=1
 	`)
 
-	if filter.ID != "" {
-		qb.Where("AND", "id", "=", filter.ID)
+	if filter.Id != "" {
+		qb.Where("AND", "id", "=", filter.Id)
 	}
 
 	if filter.Name != "" {

@@ -8,7 +8,7 @@ import (
 )
 
 type ProductFilter struct {
-	ID     string
+	Id     string
 	Name   string
 	Price  string
 	Status []string

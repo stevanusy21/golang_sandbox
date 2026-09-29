@@ -11,55 +11,73 @@ import (
 )
 
 type OrderUsecase struct {
-	orderRepo *repository.OrderRepository
+	orderRepo     *repository.OrderRepository
 	paymentClient payment.PaymentServiceClient
 }
 
 func NewOrderUsecase(repo *repository.OrderRepository, payClient payment.PaymentServiceClient) *OrderUsecase {
 	return &OrderUsecase{
-		orderRepo: repo,
+		orderRepo:     repo,
 		paymentClient: payClient,
 	}
 }
 
-func (u *OrderUsecase) CreateOrder(order *domain.Order, paymentMethod string) error {
-	order.Id = fmt.Sprintf("ORD-%d", time.Now().UnixMilli())
-	order.Status = "PENDING"
-	order.CreatedAt = time.Now()
+func (u *OrderUsecase) CreateOrder(payload *domain.OrderCreateRequest) error {
+	order := domain.Order{
+		Id:          fmt.Sprintf("ORD-%d", time.Now().UnixMilli()),
+		Customer:    payload.Customer,
+		TotalAmount: payload.TotalAmount,
+		Status:      domain.OrderPending,
+	}
 
-	err := u.orderRepo.CreateOrder(order)
+	err := u.orderRepo.CreateOrder(&order)
 	if err != nil {
-		return fmt.Errorf("Gagal menyimpan order ke database: %v", err)
+		return err
 	}
 
 	req := &payment.PaymentRequest{
-		OrderId: order.Id,
-		Amount: order.TotalAmount,
-		PaymentMethod: paymentMethod,
+		OrderId:       order.Id,
+		Amount:        order.TotalAmount,
+		PaymentMethod: payload.PaymentMethod,
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
-	
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+
 	defer cancel()
 
 	res, err := u.paymentClient.ProcessPayment(ctx, req)
 	if err != nil {
-		u.orderRepo.UpdateStatus(order.Id, "FAILED")
-		return fmt.Errorf("Gagal menghubungi payment service: %v", err)
+		u.orderRepo.UpdateStatus(order.Id, domain.OrderFailed)
+		return err
 	}
 
 	if !res.IsSuccess {
-		u.orderRepo.UpdateStatus(order.Id, "FAILED")
-		return fmt.Errorf("Pembayaran ditolak: %s", res.Message)
+		u.orderRepo.UpdateStatus(order.Id, domain.OrderFailed)
+		return err
 	}
 
 	return nil
 }
 
-func (u *OrderUsecase) GetAllOrders(filter domain.OrderFilter) ([]domain.Order, error) {
-	return u.orderRepo.GetAllOrders(filter)
+func (u *OrderUsecase) GetAllOrders(filter domain.OrderFilter) ([]domain.OrderDetailResponse, error) {
+	orders, err := u.orderRepo.GetAllOrders(filter)
+	if err != nil {
+		return nil, err
+	}
+
+	response := make([]domain.OrderDetailResponse, 0, len(orders))
+	for _, order := range orders {
+		response = append(response, order.ToOrderDetailResponse())
+	}
+
+	return response, nil
 }
 
-func (u *OrderUsecase) GetOrderById(id string) (domain.Order, error) {
-	return u.orderRepo.GetOrderById(id)
+func (u *OrderUsecase) GetOrderById(id string) (domain.OrderDetailResponse, error) {
+	order, err := u.orderRepo.GetOrderById(id)
+	if err != nil {
+		return domain.OrderDetailResponse{}, err
+	}
+
+	return order.ToOrderDetailResponse(), nil
 }

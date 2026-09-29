@@ -39,5 +39,17 @@ func GetIntParam(r *http.Request, paramName string) (int, error) {
 	}
 
 	return val, nil
+}
 
+func GetStringParam(r *http.Request, paramName string) (string, error) {
+	valStr := r.PathValue(paramName)
+	if valStr == "" {
+		valStr = r.URL.Query().Get(paramName)
+	}
+
+	if valStr == "" {
+		return "", errors.New("Parameter " + paramName + " tidak ditemukan")
+	}
+
+	return valStr, nil
 }

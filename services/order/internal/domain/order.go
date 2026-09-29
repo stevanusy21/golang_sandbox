@@ -2,28 +2,24 @@ package domain
 
 import (
 	"time"
-
-	"github.com/stevanusy21/golang_sandbox/pkg/utils"
 )
 
 type Order struct {
-	Id    string     `json:"id"`
-	Customer  string  `json:"customer"`
-	TotalAmount float64 `json:"total_amount"`
-	Status string `json:"status"`
-	CreatedAt time.Time `json:"created_at"`
+	Id          string
+	Customer    string
+	TotalAmount float64
+	Status      OrderStatus
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	DeletedAt   *time.Time
 }
 
-type CheckoutRequest struct {
-	Customer string `json:"customer"`
-	TotalAmount float64 `json:"total_amount"`
-	PaymentMethod string `json:"payment_method"`
-}
-
-type OrderFilter struct {
-	Id string
-	Customer string
-	TotalAmount string
-	Status []string
-	utils.Pagination
+func (o Order) ToOrderDetailResponse() OrderDetailResponse {
+	return OrderDetailResponse{
+		Id:          o.Id,
+		Customer:    o.Customer,
+		TotalAmount: o.TotalAmount,
+		Status:      o.Status,
+		CreatedAt:   o.CreatedAt,
+	}
 }

@@ -6,9 +6,10 @@ import (
 	"net/http"
 	"os"
 
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/joho/godotenv"
 	"github.com/stevanusy21/golang_sandbox/api/proto/payment"
-	"github.com/stevanusy21/golang_sandbox/services/order/internal/config"
+	"github.com/stevanusy21/golang_sandbox/pkg/utils"
 	deliveryHttp "github.com/stevanusy21/golang_sandbox/services/order/internal/delivery/http"
 	"github.com/stevanusy21/golang_sandbox/services/order/internal/repository"
 	"github.com/stevanusy21/golang_sandbox/services/order/internal/usecase"
@@ -22,7 +23,7 @@ func main() {
 		log.Println("File .env tidak ditemukan, menggunakan environment variables sistem")
 	}
 
-	db, err := config.ConnectDB()
+	db, err := utils.ConnectDB("pgx", os.Getenv("DB_DSN"))
 	if err != nil {
 		log.Fatalf("Gagal konek ke Database: %v", err)
 	}
@@ -44,7 +45,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /checkout", orderHandler.Checkout)
 	mux.HandleFunc("GET /orders", orderHandler.GetAllOrders)
-	mux.HandleFunc("GET /order", orderHandler.GetOrderById)
+	mux.HandleFunc("GET /orders/{id}", orderHandler.GetOrderById)
 
 	port := fmt.Sprintf(":%s", os.Getenv("APP_PORT"))
 	fmt.Printf("Order Service (HTTP) berjalan di port %s\n", port)

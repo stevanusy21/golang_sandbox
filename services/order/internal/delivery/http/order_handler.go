@@ -1,10 +1,11 @@
 package http
 
 import (
-	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
 
+	"github.com/stevanusy21/golang_sandbox/pkg/request"
 	"github.com/stevanusy21/golang_sandbox/pkg/response"
 	"github.com/stevanusy21/golang_sandbox/pkg/utils"
 	"github.com/stevanusy21/golang_sandbox/services/order/internal/domain"
@@ -22,50 +23,54 @@ func NewOrderHandler(u *usecase.OrderUsecase) *OrderHandler {
 }
 
 func (h *OrderHandler) Checkout(w http.ResponseWriter, r *http.Request) {
-	var input domain.CheckoutRequest
-
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		response.Error(w, http.StatusBadRequest, "Format JSON tidak valid")
-		return
-	}
-
-	order := &domain.Order{
-		Customer: input.Customer,
-		TotalAmount: input.TotalAmount,
-	}
-
-	err := h.orderUsecase.CreateOrder(order, input.PaymentMethod)
+	payload, err := request.DecodeJSON[domain.OrderCreateRequest](r)
 	if err != nil {
-		response.Error(w, http.StatusInternalServerError, err.Error())
+		response.Error(w, http.StatusBadRequest, err.Error())
 		return
+	}
+
+	if err := h.orderUsecase.CreateOrder(&payload); err != nil {
+		switch {
+		case errors.Is(err, domain.ErrOrderCreationFailed):
+			response.Error(w, http.StatusBadRequest, err.Error())
+			return
+		default:
+			response.Error(w, http.StatusInternalServerError, err.Error())
+			return
+		}
 	}
 
 	response.JSON(w, http.StatusCreated, map[string]interface{}{
 		"message": "Order berhasil dibuat dan pembayaran diproses",
-		"order": order,
 	})
 }
 
 func (h *OrderHandler) GetAllOrders(w http.ResponseWriter, r *http.Request) {
 	allowedColumns := map[string]bool{
-		"id": true,
-		"name": true,
+		"id":    true,
+		"name":  true,
 		"price": true,
 	}
 
 	statusQuery := r.URL.Query().Get("status")
-	statusSlice := []string{}
+	statusSlice := []domain.OrderStatus{}
 
 	if statusQuery != "" {
-		statusSlice = strings.Split(statusQuery, ",")
+		for _, s := range strings.Split(statusQuery, ",") {
+			if !domain.OrderStatus(s).IsValid() {
+				response.Error(w, http.StatusBadRequest, "Status tidak valid")
+				return
+			}
+			statusSlice = append(statusSlice, domain.OrderStatus(s))
+		}
 	}
-	
+
 	filter := domain.OrderFilter{
-		Id: r.URL.Query().Get("id"),
-		Customer: r.URL.Query().Get("customer"),
+		Id:          r.URL.Query().Get("id"),
+		Customer:    r.URL.Query().Get("customer"),
 		TotalAmount: r.URL.Query().Get("total_amount"),
-		Status: statusSlice,
-		Pagination: utils.GeneratePagination(
+		Status:      statusSlice,
+		Pagination: utils.GeneratePaginationData(
 			r.URL.Query().Get("page"),
 			r.URL.Query().Get("limit"),
 			r.URL.Query().Get("sort_by"),
@@ -73,7 +78,7 @@ func (h *OrderHandler) GetAllOrders(w http.ResponseWriter, r *http.Request) {
 			allowedColumns,
 		),
 	}
-	
+
 	orders, err := h.orderUsecase.GetAllOrders(filter)
 	if err != nil {
 		response.Error(w, http.StatusInternalServerError, err.Error())
@@ -84,22 +89,27 @@ func (h *OrderHandler) GetAllOrders(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *OrderHandler) GetOrderById(w http.ResponseWriter, r *http.Request) {
-	id := r.URL.Query().Get("id")
-
-	if id == "" {
-		response.Error(w, http.StatusBadRequest, "Id order harus diisi")
+	id, err := request.GetStringParam(r, "id")
+	if err != nil {
+		response.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	order, err := h.orderUsecase.GetOrderById(id)
 	if err != nil {
-		response.Error(w, http.StatusNotFound, err.Error())
-		return
+		switch {
+		case errors.Is(err, domain.ErrOrderNotFound):
+			response.Error(w, http.StatusNotFound, err.Error())
+			return
+		default:
+			response.Error(w, http.StatusInternalServerError, err.Error())
+			return
+		}
 	}
 
 	response.JSON(w, http.StatusOK, order)
 }
 
 func (h *OrderHandler) UpdateCheckoutPaymentStatus(w http.ResponseWriter, r *http.Request) {
-	
+
 }

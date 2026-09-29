@@ -14,7 +14,7 @@ type Pagination struct {
 	SortDir string
 }
 
-func GeneratePagination(pageStr, limitStr, sortBy, sortDir string, allowedColumns map[string]bool) Pagination {
+func GeneratePaginationData(pageStr, limitStr, sortBy, sortDir string, allowedColumns map[string]bool) Pagination {
 	page, _ := strconv.Atoi(pageStr)
 	if page < 1 {
 		page = 1
