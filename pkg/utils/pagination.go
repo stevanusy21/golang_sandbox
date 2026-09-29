@@ -14,11 +14,6 @@ type Pagination struct {
 	SortDir string
 }
 
-var allowedSortDirs = map[string]bool{
-	"ASC": true,
-	"DESC": true,
-}
-
 func GeneratePagination(pageStr, limitStr, sortBy, sortDir string, allowedColumns map[string]bool) Pagination {
 	page, _ := strconv.Atoi(pageStr)
 	if page < 1 {
@@ -50,6 +45,44 @@ func GeneratePagination(pageStr, limitStr, sortBy, sortDir string, allowedColumn
 	}
 }
 
-func (p Pagination) BuildOrderBy() string {
-	return fmt.Sprintf(" ORDER BY %s %s", p.SortBy, p.SortDir)
+type PaginationQueryBuilder struct {
+	query strings.Builder
+	args []any
+	paramIndex int
+}
+
+func NewPaginationQueryBuilder(baseQuery string) *PaginationQueryBuilder {
+	q := &PaginationQueryBuilder{
+		paramIndex: 1,
+	}
+
+	q.query.WriteString(baseQuery)
+
+	return q
+}
+
+func (q *PaginationQueryBuilder) Where(condition string, column string, operator string, value any) {
+	q.query.WriteString(fmt.Sprintf(" %s %s %s $%d", condition, column, operator, q.paramIndex))
+	q.args = append(q.args, value)
+	q.paramIndex++
+}
+
+func (q *PaginationQueryBuilder) WhereAny(condition string, column string, values any) {
+	q.query.WriteString(fmt.Sprintf(" %s %s = ANY($%d)", condition, column, q.paramIndex))
+	q.args = append(q.args, values)
+	q.paramIndex++
+}
+
+func (q *PaginationQueryBuilder) OrderBy(sortBy string, sortDir string) {
+	q.query.WriteString(fmt.Sprintf(" ORDER BY %s %s", sortBy, sortDir))
+}
+
+func (q *PaginationQueryBuilder) LimitOffset(limit, offset int) {
+	q.query.WriteString(fmt.Sprintf(" LIMIT $%d OFFSET $%d", q.paramIndex, q.paramIndex+1))
+	q.args = append(q.args, limit, offset)
+	q.paramIndex += 2
+}
+
+func (q *PaginationQueryBuilder) Build() (string, []any) {
+	return q.query.String(), q.args
 }

@@ -3,8 +3,8 @@ package repository
 import (
 	"database/sql"
 	"fmt"
-	"log"
 
+	"github.com/stevanusy21/golang_sandbox/pkg/utils"
 	"github.com/stevanusy21/golang_sandbox/services/product/internal/domain"
 )
 
@@ -48,7 +48,7 @@ func (r *ProductRepository) GetProductById(id int) (domain.Product, error) {
 }
 
 func (r *ProductRepository) GetAllProducts(filter domain.ProductFilter) ([]domain.Product, error) {
-	query := `
+	qb := utils.NewPaginationQueryBuilder(`
 		SELECT 
 			id, 
 			name, 
@@ -59,39 +59,29 @@ func (r *ProductRepository) GetAllProducts(filter domain.ProductFilter) ([]domai
 			updated_at,
 			deleted_at 
 		FROM products 
-		WHERE 1=1`
-
-	args := []any{}
-	paramIndex := 1
+		WHERE 1=1
+	`)
 
 	if filter.ID != "" {
-		query += fmt.Sprintf(" AND id = $%d", paramIndex)
-		args = append(args, filter.ID)
-		paramIndex++
+		qb.Where("AND", "id", "=", filter.ID)
 	}
 
 	if filter.Name != "" {
-		query += fmt.Sprintf(" AND name ILIKE $%d", paramIndex)
-		args = append(args, "%"+filter.Name+"%")
-		paramIndex++
+		qb.Where("AND", "name", "ILIKE", "%"+filter.Name+"%")
 	}
 
 	if filter.Price != "" {
-		query += fmt.Sprintf(" AND price = $%d", paramIndex)
-		args = append(args, filter.Price)
-		paramIndex++
+		qb.Where("AND", "price", "=", filter.Price)
 	}
 
 	if len(filter.Status) > 0 {
-		query += fmt.Sprintf(" AND status = ANY($%d)", paramIndex)
-		args = append(args, filter.Status)
-		paramIndex++
+		qb.WhereAny("AND", "status", filter.Status)
 	}
 
-	query += filter.BuildOrderBy()
+	qb.OrderBy(filter.SortBy, filter.SortDir)
+	qb.LimitOffset(filter.Limit, filter.Offset)
 
-	query += fmt.Sprintf(" LIMIT $%d OFFSET $%d", paramIndex, paramIndex+1)
-	args = append(args, filter.Limit, filter.Offset)
+	query, args := qb.Build()
 
 	rows, err := r.db.Query(query, args...)
 	if err != nil {
@@ -100,13 +90,11 @@ func (r *ProductRepository) GetAllProducts(filter domain.ProductFilter) ([]domai
 
 	defer rows.Close()
 
-	var scanError error = nil
-
 	var products []domain.Product
 	for rows.Next() {
 		var p domain.Product
 
-		err := rows.Scan(
+		if err := rows.Scan(
 			&p.ID,
 			&p.Name,
 			&p.Price,
@@ -115,19 +103,11 @@ func (r *ProductRepository) GetAllProducts(filter domain.ProductFilter) ([]domai
 			&p.CreatedAt,
 			&p.UpdatedAt,
 			&p.DeletedAt,
-		)
-
-		if err != nil {
-			scanError = domain.ErrProductScanFailed
-			log.Println("Error saat scan data:", err)
-			continue
+		); err != nil {
+			return nil, fmt.Errorf("%w: %v", domain.ErrProductScanFailed, err)
 		}
 
 		products = append(products, p)
-	}
-
-	if scanError != nil {
-		return nil, scanError
 	}
 
 	if err := rows.Err(); err != nil {
