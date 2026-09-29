@@ -15,26 +15,6 @@ func NewUserRepository(db *sql.DB) *UserRepository {
 	return &UserRepository{db: db}
 }
 
-type rowScanner interface {
-	Scan(dest ...any) error
-}
-
-func scanUser(scanner rowScanner) (domain.User, error) {
-	var u domain.User
-	err := scanner.Scan(
-		&u.ID,
-		&u.Username,
-		&u.Email,
-		&u.Password,
-		&u.Status,
-		&u.CreatedAt,
-		&u.UpdatedAt,
-		&u.DeletedAt,
-	)
-
-	return u, err
-}
-
 func (r *UserRepository) CreateUser(u *domain.User) error {
 	query := "INSERT INTO users (username, email, password, status) VALUES ($1, $2, $3, $4) RETURNING id"
 	err := r.db.QueryRow(query, u.Username, u.Email, u.Password, u.Status).Scan(&u.ID)
@@ -78,6 +58,8 @@ func (r *UserRepository) ChangeStatusUser(id int, status domain.UserStatus) erro
 }
 
 func (r *UserRepository) GetUserById(id int) (domain.User, error) {
+	var u domain.User
+
 	query := `
 	SELECT 
 		id, 
@@ -91,7 +73,19 @@ func (r *UserRepository) GetUserById(id int) (domain.User, error) {
 	FROM users 
 	WHERE id = $1 AND deleted_at IS NULL
 	`
-	return scanUser(r.db.QueryRow(query, id))
+
+	err := r.db.QueryRow(query, id).Scan(
+		&u.ID,
+		&u.Username,
+		&u.Email,
+		&u.Password,
+		&u.Status,
+		&u.CreatedAt,
+		&u.UpdatedAt,
+		&u.DeletedAt,
+	)
+
+	return u, err
 }
 
 func (r *UserRepository) CheckExistsBy(column string, value any) (bool, error) {

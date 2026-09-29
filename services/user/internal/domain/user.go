@@ -7,7 +7,7 @@ type User struct {
 	Username  string
 	Email     string
 	Password  string
-	Status    UserStatus `json:"status"`
+	Status    UserStatus
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	DeletedAt *time.Time

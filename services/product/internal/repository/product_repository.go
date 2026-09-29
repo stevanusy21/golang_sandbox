@@ -18,18 +18,48 @@ func NewProductRepository(db *sql.DB) *ProductRepository {
 
 func (r *ProductRepository) GetProductById(id int) (domain.Product, error) {
 	var p domain.Product
-	
-	query := "SELECT id, name, price, stock, status FROM products WHERE id = $1"
-	err := r.db.QueryRow(query, id).Scan(&p.ID, &p.Name, &p.Price, &p.Stock, &p.Status)
-	if err != nil {
-		return domain.Product{}, err
-	}
 
-	return p, nil
+	query := `
+		SELECT 
+			id, 
+			name, 
+			price, 
+			stock, 
+			status,
+			created_at,
+			updated_at,
+			deleted_at 
+		FROM products 
+		WHERE id = $1
+	`
+
+	err := r.db.QueryRow(query, id).Scan(
+		&p.ID,
+		&p.Name,
+		&p.Price,
+		&p.Stock,
+		&p.Status,
+		&p.CreatedAt,
+		&p.UpdatedAt,
+		&p.DeletedAt,
+	)
+
+	return p, err
 }
 
 func (r *ProductRepository) GetAllProducts(filter domain.ProductFilter) ([]domain.Product, error) {
-	query := "SELECT id, name, price, stock, status FROM products WHERE 1=1"
+	query := `
+		SELECT 
+			id, 
+			name, 
+			price, 
+			stock, 
+			status,
+			created_at,
+			updated_at,
+			deleted_at 
+		FROM products 
+		WHERE 1=1`
 
 	args := []any{}
 	paramIndex := 1
@@ -70,12 +100,25 @@ func (r *ProductRepository) GetAllProducts(filter domain.ProductFilter) ([]domai
 
 	defer rows.Close()
 
+	var scanError error = nil
+
 	var products []domain.Product
 	for rows.Next() {
 		var p domain.Product
-		
-		err := rows.Scan(&p.ID, &p.Name, &p.Price, &p.Stock, &p.Status)
+
+		err := rows.Scan(
+			&p.ID,
+			&p.Name,
+			&p.Price,
+			&p.Stock,
+			&p.Status,
+			&p.CreatedAt,
+			&p.UpdatedAt,
+			&p.DeletedAt,
+		)
+
 		if err != nil {
+			scanError = domain.ErrProductScanFailed
 			log.Println("Error saat scan data:", err)
 			continue
 		}
@@ -83,36 +126,52 @@ func (r *ProductRepository) GetAllProducts(filter domain.ProductFilter) ([]domai
 		products = append(products, p)
 	}
 
+	if scanError != nil {
+		return nil, scanError
+	}
+
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
 
-	return products, nil
+	return products, err
 }
 
-func (r *ProductRepository) CreateProduct(product *domain.Product) error {
-	query := "INSERT INTO products (name, price, stock, status) VALUES ($1, $2, $3, $4) RETURNING id"
+func (r *ProductRepository) CreateProduct(p *domain.Product) error {
+	query := `
+		INSERT INTO products (name, price, stock, status)
+		VALUES ($1, $2, $3, $4)
+	`
 
-	err := r.db.QueryRow(query, product.Name, product.Price, product.Stock, "NEW_ADDED").Scan(&product.ID)
-	if err != nil {
-		return err
-	}
+	_, err := r.db.Exec(query, p.Name, p.Price, p.Stock, p.Status)
 
-	return nil
+	return err
 }
 
-func (r *ProductRepository) UpdateProduct(product *domain.Product) error {
-	query := "UPDATE products SET name = $1, price = $2, stock = $3, status = $4 WHERE id = $5"
+func (r *ProductRepository) UpdateProduct(id int, p *domain.ProductUpdateRequest) error {
+	query := `
+		UPDATE products 
+		SET 
+			name = $1, 
+			price = $2, 
+			stock = $3, 
+			status = $4, 
+			updated_at = CURRENT_TIMESTAMP 
+		WHERE id = $5 AND deleted_at IS NULL
+	`
 
-	_, err := r.db.Exec(query, product.Name, product.Price, product.Stock, product.Status, product.ID)
+	_, err := r.db.Exec(query, p.Name, p.Price, p.Stock, p.Status, id)
 
-	return err;
+	return err
 }
 
 func (r *ProductRepository) DeleteProduct(id int) error {
-	query := "UPDATE products SET status = 'DELETED' WHERE id = $1"
-
+	query := `
+		UPDATE products 
+		SET deleted_at = CURRENT_TIMESTAMP 
+		WHERE id = $1 AND deleted_at IS NULL
+	`
 	_, err := r.db.Exec(query, id)
 
-	return err;
+	return err
 }

@@ -1,13 +1,11 @@
 package http
 
 import (
-	"database/sql"
-	"encoding/json"
-	"fmt"
+	"errors"
 	"net/http"
-	"strconv"
 	"strings"
 
+	"github.com/stevanusy21/golang_sandbox/pkg/request"
 	"github.com/stevanusy21/golang_sandbox/pkg/response"
 	"github.com/stevanusy21/golang_sandbox/pkg/utils"
 	"github.com/stevanusy21/golang_sandbox/services/product/internal/domain"
@@ -25,25 +23,20 @@ func NewProductHandler(productUsecase *usecase.ProductUsecase) *ProductHandler {
 }
 
 func (h *ProductHandler) GetProductByID(w http.ResponseWriter, r *http.Request) {
-	idStr := r.URL.Query().Get("id")
-	if idStr == "" {
-		response.Error(w, http.StatusBadRequest, "ID produk harus diisi")
-		return
-	}
-
-	id, err := strconv.Atoi(idStr)
+	id, err := request.GetIntParam(r, "id")
 	if err != nil {
-		response.Error(w, http.StatusBadRequest, "ID produk tidak valid")
+		response.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	product, err := h.productUsecase.GetProductById(id)
-	if err == sql.ErrNoRows {
-		response.Error(w, http.StatusNotFound, fmt.Sprintf("Data product dengan id %d tidak ditemukan", id))
-		return
-	}
 	if err != nil {
-		response.Error(w, http.StatusInternalServerError, err.Error())
+		switch {
+		case errors.Is(err, domain.ErrProductNotFound):
+			response.Error(w, http.StatusNotFound, err.Error())
+		default:
+			response.Error(w, http.StatusInternalServerError, "Terjadi kesalahan internal pada server")
+		}
 		return
 	}
 
@@ -52,10 +45,10 @@ func (h *ProductHandler) GetProductByID(w http.ResponseWriter, r *http.Request) 
 
 func (h *ProductHandler) GetAllProducts(w http.ResponseWriter, r *http.Request) {
 	allowedColumns := map[string]bool{
-		"id": true,
-		"name": true,
-		"price": true,
-		"stock": true,
+		"id":     true,
+		"name":   true,
+		"price":  true,
+		"stock":  true,
 		"status": true,
 	}
 
@@ -65,11 +58,11 @@ func (h *ProductHandler) GetAllProducts(w http.ResponseWriter, r *http.Request) 
 	if statusQuery != "" {
 		statusSlice = strings.Split(statusQuery, ",")
 	}
-	
+
 	filter := domain.ProductFilter{
-		ID: r.URL.Query().Get("id"),
-		Name: r.URL.Query().Get("name"),
-		Price: r.URL.Query().Get("price"),
+		ID:     r.URL.Query().Get("id"),
+		Name:   r.URL.Query().Get("name"),
+		Price:  r.URL.Query().Get("price"),
 		Status: statusSlice,
 		Pagination: utils.GeneratePagination(
 			r.URL.Query().Get("page"),
@@ -79,10 +72,15 @@ func (h *ProductHandler) GetAllProducts(w http.ResponseWriter, r *http.Request) 
 			allowedColumns,
 		),
 	}
-	
+
 	products, err := h.productUsecase.GetAllProducts(filter)
 	if err != nil {
-		response.Error(w, http.StatusInternalServerError, err.Error())
+		switch {
+		case errors.Is(err, domain.ErrProductQueryFailed):
+			response.Error(w, http.StatusInternalServerError, err.Error())
+		default:
+			response.Error(w, http.StatusInternalServerError, "Terjadi kesalahan internal pada server")
+		}
 		return
 	}
 
@@ -90,71 +88,69 @@ func (h *ProductHandler) GetAllProducts(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *ProductHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
-	var input domain.Product
-
-	err := json.NewDecoder(r.Body).Decode(&input)
-	if err != nil {
-		response.Error(w, http.StatusBadRequest, "Format JSON tidak valid")
-		return
-	}
-
-	err = h.productUsecase.CreateProduct(&input)
+	payload, err := request.DecodeJSON[domain.ProductCreateRequest](r)
 	if err != nil {
 		response.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	response.JSON(w, http.StatusCreated, &input)
+	if err = h.productUsecase.CreateProduct(&payload); err != nil {
+		switch {
+		case errors.Is(err, domain.ErrProductCreationFailed):
+			response.Error(w, http.StatusInternalServerError, err.Error())
+		default:
+			response.Error(w, http.StatusInternalServerError, "Terjadi kesalahan internal pada server")
+		}
+		return
+	}
+
+	response.JSON(w, http.StatusCreated, map[string]string{"message": "Produk berhasil dibuat"})
 }
 
 func (h *ProductHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
-	idStr := r.URL.Query().Get("id")
-	if idStr == "" {
-		response.Error(w, http.StatusBadRequest, "ID produk harus diisi")
-		return
-	}
-
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		response.Error(w, http.StatusBadRequest, "ID produk tidak valid")
-		return
-	}
-
-	var input domain.Product
-
-	err = json.NewDecoder(r.Body).Decode(&input)
-	if err != nil {
-		response.Error(w, http.StatusBadRequest, "Format JSON tidak valid")
-		return
-	}
-
-	input.ID = id
-
-	err = h.productUsecase.UpdateProduct(&input)
+	id, err := request.GetIntParam(r, "id")
 	if err != nil {
 		response.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	response.JSON(w, http.StatusOK, input)
+	payload, err := request.DecodeJSON[domain.ProductUpdateRequest](r)
+	if err != nil {
+		response.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err = h.productUsecase.UpdateProduct(id, &payload); err != nil {
+		switch {
+		case errors.Is(err, domain.ErrProductNotFound):
+			response.Error(w, http.StatusNotFound, err.Error())
+		case errors.Is(err, domain.ErrProductUpdateFailed):
+			response.Error(w, http.StatusInternalServerError, err.Error())
+		default:
+			response.Error(w, http.StatusInternalServerError, "Terjadi kesalahan internal pada server")
+		}
+		return
+	}
+
+	response.JSON(w, http.StatusOK, map[string]string{"message": "Produk berhasil diupdate"})
 }
 
 func (h *ProductHandler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
-	idStr := r.URL.Query().Get("id")
-	if idStr == "" {
-		response.Error(w, http.StatusBadRequest, "ID produk harus diisi")
-		return
-	}
-
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		response.Error(w, http.StatusBadRequest, "ID produk tidak valid")
-		return
-	}
-
-	err = h.productUsecase.DeleteProduct(id)
+	id, err := request.GetIntParam(r, "id")
 	if err != nil {
 		response.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err = h.productUsecase.DeleteProduct(id); err != nil {
+		switch {
+		case errors.Is(err, domain.ErrProductNotFound):
+			response.Error(w, http.StatusNotFound, err.Error())
+		case errors.Is(err, domain.ErrProductDeleteFailed):
+			response.Error(w, http.StatusInternalServerError, err.Error())
+		default:
+			response.Error(w, http.StatusInternalServerError, "Terjadi kesalahan internal pada server")
+		}
 		return
 	}
 

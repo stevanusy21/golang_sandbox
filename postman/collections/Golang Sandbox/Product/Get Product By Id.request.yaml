@@ -1,6 +1,4 @@
 $kind: http-request
-url: "{{urlProduct}}/product?id=2"
+url: "{{urlProduct}}/products/2"
 method: GET
-queryParams:
-  id: "2"
 order: 1790320434237

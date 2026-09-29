@@ -1,8 +1,6 @@
 $kind: http-request
-url: "{{urlProduct}}/product?id=4"
+url: "{{urlProduct}}/products/2"
 method: PUT
-queryParams:
-  id: "4"
 body:
   type: json
   content: "  {\r

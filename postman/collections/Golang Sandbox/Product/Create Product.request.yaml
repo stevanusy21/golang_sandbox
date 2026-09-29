@@ -1,13 +1,17 @@
 $kind: http-request
-url: "{{urlProduct}}/product"
+url: "{{urlProduct}}/products"
 method: POST
 body:
   type: json
   content: "{\r
 
-    \  \"name\": \"Kopi Susu\",\r
+    \  \"name\": \"Kopi Hitam\",\r
 
-    \  \"price\": 20000.00\r
+    \  \"price\": 15000.00,\r
+
+    \  \"stock\": 20,\r
+
+    \  \"status\": \"AVAILABLE\"\r
 
     }"
 order: 4005416706451598

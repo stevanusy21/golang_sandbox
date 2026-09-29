@@ -9,7 +9,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/joho/godotenv"
 	"github.com/stevanusy21/golang_sandbox/pkg/utils"
-	deliveryHttp "github.com/stevanusy21/golang_sandbox/services/user/internal/delivery"
+	deliveryHttp "github.com/stevanusy21/golang_sandbox/services/user/internal/delivery/http"
 	"github.com/stevanusy21/golang_sandbox/services/user/internal/repository"
 	"github.com/stevanusy21/golang_sandbox/services/user/internal/usecase"
 )

@@ -1,19 +1,25 @@
 package domain
 
-import "github.com/stevanusy21/golang_sandbox/pkg/utils"
+import "time"
 
 type Product struct {
-	ID    int     `json:"id"`
-	Name  string  `json:"name"`
-	Price float64 `json:"price"`
-	Stock int     `json:"stock"`
-	Status string `json:"status"`
+	ID        int           `db:"id"`
+	Name      string        `db:"name"`
+	Price     float64       `db:"price"`
+	Stock     int           `db:"stock"`
+	Status    ProductStatus `db:"status"`
+	CreatedAt time.Time     `db:"created_at"`
+	UpdatedAt time.Time     `db:"updated_at"`
+	DeletedAt *time.Time    `db:"deleted_at"`
 }
 
-type ProductFilter struct {
-	ID    string
-	Name  string
-	Price string
-	Status []string
-	utils.Pagination
+func (p Product) ToProductResponse() ProductDetailResponse {
+	return ProductDetailResponse{
+		ID:        p.ID,
+		Name:      p.Name,
+		Price:     p.Price,
+		Stock:     p.Stock,
+		Status:    p.Status,
+		CreatedAt: p.CreatedAt,
+	}
 }
