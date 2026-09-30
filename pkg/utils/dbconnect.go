@@ -29,6 +29,6 @@ func ConnectDB(driver string, dsn string) (*sql.DB, error) {
 	// Berapa lama koneksi idle boleh bertahan sebelum ditutup otomatis
 	db.SetConnMaxIdleTime(2 * time.Minute)
 
-	LogInfo("Koneksi Database", "Berhasil terhubung ke database")
+	LogInfo("Database Utils", "Berhasil terhubung ke database")
 	return db, nil
 }

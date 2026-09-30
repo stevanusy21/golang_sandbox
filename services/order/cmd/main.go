@@ -7,13 +7,12 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/joho/godotenv"
-	"github.com/stevanusy21/golang_sandbox/api/proto/payment"
 	"github.com/stevanusy21/golang_sandbox/pkg/utils"
+	"github.com/stevanusy21/golang_sandbox/proto/payment"
+	"github.com/stevanusy21/golang_sandbox/proto/product"
 	deliveryHttp "github.com/stevanusy21/golang_sandbox/services/order/internal/delivery/http"
 	"github.com/stevanusy21/golang_sandbox/services/order/internal/repository"
 	"github.com/stevanusy21/golang_sandbox/services/order/internal/usecase"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 func main() {
@@ -28,17 +27,26 @@ func main() {
 	}
 	defer db.Close()
 
-	utils.LogInfo("Order Service", "Mencoba konek ke Payment Service (gRPC) di localhost:50051...")
-	grpcConn, err := grpc.NewClient("localhost:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	// Koneksi ke Payment Service
+	grpcConnPayment, err := utils.ConnectGrpc("Order Service", os.Getenv("GRPC_PAYMENT_ADDRESS"))
 	if err != nil {
 		utils.LogFatal("Order Service", "Gagal konek ke Payment Service", err)
 	}
-	defer grpcConn.Close()
+	defer grpcConnPayment.Close()
 
-	paymentClient := payment.NewPaymentServiceClient(grpcConn)
+	paymentClient := payment.NewPaymentServiceClient(grpcConnPayment)
+
+	// Koneksi ke Product Service
+	grpcConnProduct, err := utils.ConnectGrpc("Order Service", os.Getenv("GRPC_PRODUCT_ADDRESS"))
+	if err != nil {
+		utils.LogFatal("Order Service", "Gagal konek ke Product Service", err)
+	}
+	defer grpcConnProduct.Close()
+
+	productClient := product.NewProductServiceClient(grpcConnProduct)
 
 	orderRepo := repository.NewOrderRepository(db)
-	orderUsecase := usecase.NewOrderUsecase(orderRepo, paymentClient)
+	orderUsecase := usecase.NewOrderUsecase(orderRepo, paymentClient, productClient)
 	orderHandler := deliveryHttp.NewOrderHandler(orderUsecase)
 
 	mux := http.NewServeMux()

@@ -2,13 +2,12 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"os"
 
 	"github.com/joho/godotenv"
-	"github.com/stevanusy21/golang_sandbox/api/proto/payment"
-	"github.com/stevanusy21/golang_sandbox/services/payment/internal/config"
+	"github.com/stevanusy21/golang_sandbox/proto/payment"
+	"github.com/stevanusy21/golang_sandbox/pkg/utils"
 	deliveryGrpc "github.com/stevanusy21/golang_sandbox/services/payment/internal/delivery/grpc"
 	"github.com/stevanusy21/golang_sandbox/services/payment/internal/gateway"
 	"github.com/stevanusy21/golang_sandbox/services/payment/internal/repository"
@@ -19,12 +18,12 @@ import (
 func main() {
 	err := godotenv.Load("services/payment/.env")
 	if err != nil {
-		log.Println("File .env tidak ditemukan, menggunakan environment variables sistem")
+		utils.LogErrorNoValue("Payment Service", "File .env tidak ditemukan, menggunakan environment variables sistem")
 	}
 
-	db, err := config.ConnectDB()
+	db, err := utils.ConnectDB("pgx", os.Getenv("DB_DSN"))
 	if err != nil {
-		log.Fatalf("Gagal terhubung ke database: %v", err)
+		utils.LogFatal("Payment Service", "Gagal terhubung ke database", err)
 	}
 	defer db.Close()
 
@@ -32,7 +31,7 @@ func main() {
 	isProduction := os.Getenv("MIDTRANS_PRODUCTION") == "true"
 
 	midtransGateway := gateway.NewMidtransGateway(serverKey, isProduction)
-	
+
 	paymentRepo := repository.NewPaymentRepository(db)
 	paymentUsecase := usecase.NewPaymentUsecase(paymentRepo, midtransGateway)
 	paymentHandler := deliveryGrpc.NewPaymentHandler(paymentUsecase)
@@ -44,12 +43,12 @@ func main() {
 	port := fmt.Sprintf(":%s", os.Getenv("APP_PORT"))
 	listener, err := net.Listen("tcp", port)
 	if err != nil {
-		log.Fatalf("Gagal membuka port: %v", err)
+		utils.LogFatal("Payment Service", "Gagal membuka port", err)
 	}
 
-	log.Printf("Payment Service (gRPC) sedang berjalan di port %s", port)
+	utils.LogInfo("Payment Service", "Payment Service (gRPC) sedang berjalan di port "+port)
 
 	if err := grpcServer.Serve(listener); err != nil {
-		log.Fatalf("Gagal menjalankan server gRPC: %v", err)
+		utils.LogFatal("Payment Service", "Gagal menjalankan server gRPC", err)
 	}
 }

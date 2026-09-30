@@ -77,3 +77,14 @@ func (u *ProductUsecase) DeleteProduct(id int) error {
 		return nil
 	}
 }
+
+func (u *ProductUsecase) DeductStock(id int, quantity int) error {
+	if quantity <= 0 {
+		return fmt.Errorf("%w: %v", domain.ErrInvalidRequest, "Quantity harus lebih besar dari 0")
+	}
+	if err := u.productRepo.DeductStock(id, quantity); err != nil {
+		return err
+	}
+
+	return nil
+}

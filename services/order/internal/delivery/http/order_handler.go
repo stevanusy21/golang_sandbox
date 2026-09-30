@@ -29,7 +29,8 @@ func (h *OrderHandler) Checkout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.orderUsecase.CreateOrder(&payload); err != nil {
+	orderDetailResponse, err := h.orderUsecase.CreateOrder(&payload)
+	if err != nil {
 		switch {
 		case errors.Is(err, domain.ErrOrderCreationFailed):
 			response.Error(w, http.StatusBadRequest, err.Error())
@@ -42,14 +43,35 @@ func (h *OrderHandler) Checkout(w http.ResponseWriter, r *http.Request) {
 
 	response.JSON(w, http.StatusCreated, map[string]interface{}{
 		"message": "Order berhasil dibuat dan pembayaran diproses",
+		"data":    orderDetailResponse,
 	})
 }
 
 func (h *OrderHandler) GetAllOrders(w http.ResponseWriter, r *http.Request) {
-	allowedColumns := map[string]bool{
-		"id":    true,
-		"name":  true,
-		"price": true,
+	allowedSortColumns := map[string]bool{
+		"id":         true,
+		"user_id":    true,
+		"product_id": true,
+		"quantity":   true,
+		"status":     true,
+	}
+
+	paramId, err := request.GetStringParam(r, "id")
+	if err != nil {
+		response.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	paramUserId, err := request.GetIntParam(r, "user_id")
+	if err != nil {
+		response.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	paramProductId, err := request.GetIntParam(r, "product_id")
+	if err != nil {
+		response.Error(w, http.StatusBadRequest, err.Error())
+		return
 	}
 
 	statusQuery := r.URL.Query().Get("status")
@@ -66,16 +88,16 @@ func (h *OrderHandler) GetAllOrders(w http.ResponseWriter, r *http.Request) {
 	}
 
 	filter := domain.OrderFilter{
-		Id:          r.URL.Query().Get("id"),
-		Customer:    r.URL.Query().Get("customer"),
-		TotalAmount: r.URL.Query().Get("total_amount"),
-		Status:      statusSlice,
+		Id:        paramId,
+		UserId:    paramUserId,
+		ProductId: paramProductId,
+		Status:    statusSlice,
 		Pagination: utils.GeneratePaginationData(
 			r.URL.Query().Get("page"),
 			r.URL.Query().Get("limit"),
 			r.URL.Query().Get("sort_by"),
 			r.URL.Query().Get("sort_dir"),
-			allowedColumns,
+			allowedSortColumns,
 		),
 	}
 
@@ -108,8 +130,4 @@ func (h *OrderHandler) GetOrderById(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.JSON(w, http.StatusOK, order)
-}
-
-func (h *OrderHandler) UpdateCheckoutPaymentStatus(w http.ResponseWriter, r *http.Request) {
-
 }

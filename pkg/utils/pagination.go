@@ -14,7 +14,7 @@ type Pagination struct {
 	SortDir string
 }
 
-func GeneratePaginationData(pageStr, limitStr, sortBy, sortDir string, allowedColumns map[string]bool) Pagination {
+func GeneratePaginationData(pageStr, limitStr, sortBy, sortDir string, allowedSortColumns map[string]bool) Pagination {
 	page, _ := strconv.Atoi(pageStr)
 	if page < 1 {
 		page = 1
@@ -27,7 +27,7 @@ func GeneratePaginationData(pageStr, limitStr, sortBy, sortDir string, allowedCo
 
 	offset := (page - 1) * limit
 
-	if !allowedColumns[sortBy] {
+	if !allowedSortColumns[sortBy] {
 		sortBy = "id"
 	}
 

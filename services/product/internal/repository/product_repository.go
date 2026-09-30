@@ -155,3 +155,27 @@ func (r *ProductRepository) DeleteProduct(id int) error {
 
 	return err
 }
+
+func (r *ProductRepository) DeductStock(id int, quantity int) error {
+	query := `
+		UPDATE products 
+		SET stock = stock - $1, updated_at = CURRENT_TIMESTAMP 
+		WHERE id = $2 AND stock >= $1 AND deleted_at IS NULL
+	`
+
+	result, err := r.db.Exec(query, quantity, id)
+	if err != nil {
+		return fmt.Errorf("%w: %v", domain.ErrProductQueryFailed, err)
+	}
+	
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("%w: %v", domain.ErrProductQueryFailed, err)
+	}
+
+	if rowsAffected == 0 {
+		return domain.ErrProductStockNotEnough
+	}
+	
+	return nil
+}

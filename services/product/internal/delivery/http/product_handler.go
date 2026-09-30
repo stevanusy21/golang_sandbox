@@ -44,7 +44,7 @@ func (h *ProductHandler) GetProductByID(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *ProductHandler) GetAllProducts(w http.ResponseWriter, r *http.Request) {
-	allowedColumns := map[string]bool{
+	allowedSortColumns := map[string]bool{
 		"id":     true,
 		"name":   true,
 		"price":  true,
@@ -69,7 +69,7 @@ func (h *ProductHandler) GetAllProducts(w http.ResponseWriter, r *http.Request) 
 			r.URL.Query().Get("limit"),
 			r.URL.Query().Get("sort_by"),
 			r.URL.Query().Get("sort_dir"),
-			allowedColumns,
+			allowedSortColumns,
 		),
 	}
 

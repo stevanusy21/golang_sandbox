@@ -10,4 +10,5 @@ var (
 	ErrProductDeleteFailed   = errors.New("Gagal menghapus produk")
 	ErrProductQueryFailed    = errors.New("Gagal mengambil data produk")
 	ErrProductScanFailed     = errors.New("Gagal memproses data produk")
+	ErrProductStockNotEnough = errors.New("Stok produk tidak mencukupi")
 )

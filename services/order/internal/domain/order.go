@@ -6,7 +6,9 @@ import (
 
 type Order struct {
 	Id          string
-	Customer    string
+	UserId      int
+	ProductId   int
+	Quantity    int
 	TotalAmount float64
 	Status      OrderStatus
 	CreatedAt   time.Time
@@ -17,7 +19,9 @@ type Order struct {
 func (o Order) ToOrderDetailResponse() OrderDetailResponse {
 	return OrderDetailResponse{
 		Id:          o.Id,
-		Customer:    o.Customer,
+		UserId:      o.UserId,
+		ProductId:   o.ProductId,
+		Quantity:    o.Quantity,
 		TotalAmount: o.TotalAmount,
 		Status:      o.Status,
 		CreatedAt:   o.CreatedAt,

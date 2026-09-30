@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"fmt"
 
 	"github.com/stevanusy21/golang_sandbox/pkg/utils"
 	"github.com/stevanusy21/golang_sandbox/services/order/internal/domain"
@@ -15,19 +16,38 @@ func NewOrderRepository(db *sql.DB) *OrderRepository {
 	return &OrderRepository{db: db}
 }
 
-func (r *OrderRepository) CreateOrder(order *domain.Order) error {
+func (r *OrderRepository) CreateOrder(order *domain.Order) (domain.Order, error) {
 	query := `
-		INSERT INTO orders (id, customer, total_amount, status) 
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO orders (id, user_id, product_id, quantity, total_amount, status) 
+		VALUES ($1, $2, $3, $4, $5, $6)
 	`
 
-	_, err := r.db.Exec(query, order.Id, order.Customer, order.TotalAmount, order.Status)
+	var orderResponse domain.Order
+	err := r.db.QueryRow(
+		query,
+		order.Id,
+		order.UserId,
+		order.ProductId,
+		order.Quantity,
+		order.TotalAmount,
+		order.Status,
+	).Scan(
+		&orderResponse.Id,
+		&orderResponse.UserId,
+		&orderResponse.ProductId,
+		&orderResponse.Quantity,
+		&orderResponse.TotalAmount,
+		&orderResponse.Status,
+		&orderResponse.CreatedAt,
+		&orderResponse.UpdatedAt,
+		&orderResponse.DeletedAt,
+	)
 	if err != nil {
 		utils.LogError("Order Repository", "Error create order", err)
-		return domain.ErrOrderCreationFailed
+		return orderResponse, fmt.Errorf("%w: %v", domain.ErrOrderCreationFailed, err)
 	}
 
-	return nil
+	return orderResponse, nil
 }
 
 func (r *OrderRepository) UpdateStatus(orderId string, status domain.OrderStatus) error {
@@ -46,7 +66,9 @@ func (r *OrderRepository) GetAllOrders(filter domain.OrderFilter) ([]domain.Orde
 	qb := utils.NewPaginationQueryBuilder(`
 		SELECT 
 			id, 
-			customer, 
+			user_id, 
+			product_id, 
+			quantity, 
 			total_amount, 
 			status, 
 			created_at,
@@ -60,12 +82,12 @@ func (r *OrderRepository) GetAllOrders(filter domain.OrderFilter) ([]domain.Orde
 		qb.Where("AND", "id", "=", filter.Id)
 	}
 
-	if filter.Customer != "" {
-		qb.Where("AND", "customer", "ILIKE", "%"+filter.Customer+"%")
+	if filter.UserId != 0 {
+		qb.Where("AND", "user_id", "=", filter.UserId)
 	}
 
-	if filter.TotalAmount != "" {
-		qb.Where("AND", "total_amount", "=", filter.TotalAmount)
+	if filter.ProductId != 0 {
+		qb.Where("AND", "product_id", "=", filter.ProductId)
 	}
 
 	if len(filter.Status) > 0 {
@@ -90,7 +112,9 @@ func (r *OrderRepository) GetAllOrders(filter domain.OrderFilter) ([]domain.Orde
 
 		if err := rows.Scan(
 			&order.Id,
-			&order.Customer,
+			&order.UserId,
+			&order.ProductId,
+			&order.Quantity,
 			&order.TotalAmount,
 			&order.Status,
 			&order.CreatedAt,
@@ -116,7 +140,9 @@ func (r *OrderRepository) GetOrderById(id string) (domain.Order, error) {
 	query := `
 		SELECT 
 			id, 
-			customer, 
+			user_id, 
+			product_id, 
+			quantity, 
 			total_amount, 
 			status, 
 			created_at,
@@ -130,7 +156,9 @@ func (r *OrderRepository) GetOrderById(id string) (domain.Order, error) {
 
 	err := r.db.QueryRow(query, id).Scan(
 		&order.Id,
-		&order.Customer,
+		&order.UserId,
+		&order.ProductId,
+		&order.Quantity,
 		&order.TotalAmount,
 		&order.Status,
 		&order.CreatedAt,

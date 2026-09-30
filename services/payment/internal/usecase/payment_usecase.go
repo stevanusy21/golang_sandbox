@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/stevanusy21/golang_sandbox/pkg/utils"
 	"github.com/stevanusy21/golang_sandbox/services/payment/internal/domain"
 	"github.com/stevanusy21/golang_sandbox/services/payment/internal/gateway"
 	"github.com/stevanusy21/golang_sandbox/services/payment/internal/repository"
@@ -30,7 +31,7 @@ func (u *PaymentUsecase) ProcessPayment(orderId string, amount float64, paymentM
 	if err != nil {
 		record.Status = "FAILURE"
 		if saveErr := u.repo.SavePayment(record); saveErr != nil {
-			fmt.Printf("CRITICAL: Gagal menyimpan record pembayaran yang gagal: %v", saveErr)
+			utils.LogError("Payment Usecase", "Gagal menyimpan record pembayaran yang gagal", saveErr)
 		}
 		return nil, fmt.Errorf("Gagal memproses pembayaran: %v", err)
 	}
