@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/stevanusy21/golang_sandbox/pkg/token"
 	"github.com/stevanusy21/golang_sandbox/pkg/utils"
 	"github.com/stevanusy21/golang_sandbox/services/user/internal/domain"
 	"github.com/stevanusy21/golang_sandbox/services/user/internal/repository"
@@ -120,4 +121,22 @@ func (u *UserUsecase) GetUserById(id int) (domain.UserDetailResponse, error) {
 	}
 
 	return user.ToUserDetailResponse(), nil
+}
+
+func (u *UserUsecase) Login(payload *domain.LoginRequest) (domain.LoginResponse, error) {
+	user, err := u.repo.GetUserByEmail(payload.Email)
+	if err != nil {
+		return domain.LoginResponse{}, err
+	}
+
+	if !utils.VerifyPassword(user.Password, payload.Password) {
+		return domain.LoginResponse{}, utils.ErrInvalidRequest
+	}
+
+	token, err := token.GenerateToken(user.ID, user.Email)
+	if err != nil {
+		return domain.LoginResponse{}, fmt.Errorf("%w: %v", utils.ErrTokenCreatedFailed, err)
+	}
+
+	return domain.LoginResponse{Token: token}, nil
 }

@@ -8,6 +8,7 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/joho/godotenv"
+	"github.com/stevanusy21/golang_sandbox/pkg/config"
 	"github.com/stevanusy21/golang_sandbox/pkg/utils"
 	"github.com/stevanusy21/golang_sandbox/proto/product"
 	deliveryGrpc "github.com/stevanusy21/golang_sandbox/services/product/internal/delivery/grpc"
@@ -23,7 +24,7 @@ func main() {
 		utils.LogErrorNoValue("Product Service", "File .env tidak ditemukan, menggunakan environment variables sistem")
 	}
 
-	db, err := utils.ConnectDB("pgx", os.Getenv("DB_DSN"))
+	db, err := config.ConnectDB("pgx", os.Getenv("DB_DSN"))
 	if err != nil {
 		utils.LogFatal("Product Service", "Gagal konek ke Database", err)
 	}

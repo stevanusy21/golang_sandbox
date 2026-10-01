@@ -8,6 +8,8 @@ import (
 	"github.com/stevanusy21/golang_sandbox/services/user/internal/domain"
 )
 
+const LogLocation = "User Repository"
+
 type UserRepository struct {
 	db *sql.DB
 }
@@ -17,7 +19,12 @@ func NewUserRepository(db *sql.DB) *UserRepository {
 }
 
 func (r *UserRepository) CreateUser(u *domain.User) error {
-	query := "INSERT INTO users (username, email, password, status) VALUES ($1, $2, $3, $4) RETURNING id"
+	query := `
+		INSERT INTO users (username, email, password, status) 
+		VALUES ($1, $2, $3, $4) 
+		RETURNING id
+	`
+
 	err := r.db.QueryRow(query, u.Username, u.Email, u.Password, u.Status).Scan(&u.ID)
 
 	return err
@@ -30,8 +37,11 @@ func (r *UserRepository) UpdateUser(id int, u *domain.User) error {
 		    email = $2, 
 		    updated_at = CURRENT_TIMESTAMP
 		WHERE id = $3 AND deleted_at IS NULL
-		RETURNING id`
+		RETURNING id
+	`
+
 	err := r.db.QueryRow(query, u.Username, u.Email, id).Scan(&u.ID)
+
 	return err
 }
 
@@ -41,8 +51,11 @@ func (r *UserRepository) ChangePasswordUser(id int, password string) error {
 		SET password = $1, 
 		    updated_at = CURRENT_TIMESTAMP
 		WHERE id = $2 AND deleted_at IS NULL
-		RETURNING id`
+		RETURNING id
+	`
+
 	err := r.db.QueryRow(query, password, id).Scan(&id)
+
 	return err
 }
 
@@ -54,26 +67,28 @@ func (r *UserRepository) ChangeStatusUser(id int, status domain.UserStatus) erro
 		WHERE id = $2 AND deleted_at IS NULL
 		RETURNING id
 	`
+	
 	err := r.db.QueryRow(query, status, id).Scan(&id)
+
 	return err
 }
 
 func (r *UserRepository) GetUserById(id int) (domain.User, error) {
-	var u domain.User
-
 	query := `
-	SELECT 
-		id, 
-		username, 
-		email, 
-		password, 
-		status, 
-		created_at, 
-		updated_at, 
-		deleted_at 
-	FROM users 
-	WHERE id = $1 AND deleted_at IS NULL
+		SELECT 
+			id, 
+			username, 
+			email, 
+			password, 
+			status, 
+			created_at, 
+			updated_at, 
+			deleted_at 
+		FROM users 
+		WHERE id = $1 AND deleted_at IS NULL
 	`
+
+	var u domain.User
 
 	err := r.db.QueryRow(query, id).Scan(
 		&u.ID,
@@ -116,19 +131,30 @@ func (r *UserRepository) GetUserByEmail(email string) (domain.User, error) {
 		&u.DeletedAt,
 	)
 
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return u, fmt.Errorf("%w: %v", utils.ErrUserNotFound, err)
-		}
-		return u, fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
-	}
-
-	return u, nil
+	return u, err
 }
 
 func (r *UserRepository) CheckExistsBy(column string, value any) (bool, error) {
+	query := fmt.Sprintf(`
+		SELECT EXISTS(
+			SELECT 1 
+			FROM users 
+			WHERE %s = $1 AND deleted_at IS NULL
+		)
+	`, column)
+
 	var exists bool
-	query := fmt.Sprintf("SELECT EXISTS(SELECT 1 FROM users WHERE %s = $1 AND deleted_at IS NULL)", column)
+
 	err := r.db.QueryRow(query, value).Scan(&exists)
+
 	return exists, err
+}
+
+func throwError(errorValue error, errorMessage string) error {
+	if errorValue == sql.ErrNoRows {
+		utils.LogErrorNoValue(LogLocation, utils.ErrUserNotFound.Error())
+		return fmt.Errorf("%w: %v", utils.ErrUserNotFound, errorValue)
+	}
+	utils.LogError(LogLocation, errorMessage, errorValue)
+	return fmt.Errorf("%s: %v", errorMessage, errorValue)
 }

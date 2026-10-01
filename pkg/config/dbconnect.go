@@ -1,9 +1,11 @@
-package utils
+package config
 
 import (
 	"database/sql"
 	"fmt"
 	"time"
+
+	"github.com/stevanusy21/golang_sandbox/pkg/utils"
 )
 
 func ConnectDB(driver string, dsn string) (*sql.DB, error) {
@@ -29,6 +31,6 @@ func ConnectDB(driver string, dsn string) (*sql.DB, error) {
 	// Berapa lama koneksi idle boleh bertahan sebelum ditutup otomatis
 	db.SetConnMaxIdleTime(2 * time.Minute)
 
-	LogInfo("Database Utils", "Berhasil terhubung ke database")
+	utils.LogInfo("Database Utils", "Berhasil terhubung ke database")
 	return db, nil
 }

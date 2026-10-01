@@ -1,0 +1,23 @@
+$kind: http-request
+url: "{{urlUser}}/auth/login"
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \    \"email\": \"admin2@gmail.com\",\r
+
+    \    \"password\": \"admin\"\r
+
+    }"
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    code: "var response = pm.response.json();\r
+
+      var token = response.token;\r
+
+      pm.collectionVariables.set(\"token\", token)\r\n"
+    language: text/javascript
+order: 1171542264706

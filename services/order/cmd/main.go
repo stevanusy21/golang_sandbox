@@ -9,6 +9,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/joho/godotenv"
 	amqp "github.com/rabbitmq/amqp091-go"
+	"github.com/stevanusy21/golang_sandbox/pkg/config"
 	"github.com/stevanusy21/golang_sandbox/pkg/utils"
 	"github.com/stevanusy21/golang_sandbox/proto/payment"
 	"github.com/stevanusy21/golang_sandbox/proto/product"
@@ -25,14 +26,14 @@ func main() {
 		utils.LogErrorNoValue(ServiceName, "File .env tidak ditemukan, menggunakan environment variables sistem")
 	}
 
-	db, err := utils.ConnectDB("pgx", os.Getenv("DB_DSN"))
+	db, err := config.ConnectDB("pgx", os.Getenv("DB_DSN"))
 	if err != nil {
 		utils.LogFatal(ServiceName, "Gagal konek ke Database", err)
 	}
 	defer db.Close()
 
 	// Koneksi ke Payment Service
-	grpcConnPayment, err := utils.ConnectGrpc(ServiceName, os.Getenv("GRPC_PAYMENT_ADDRESS"))
+	grpcConnPayment, err := config.ConnectGrpc(ServiceName, os.Getenv("GRPC_PAYMENT_ADDRESS"))
 	if err != nil {
 		utils.LogFatal(ServiceName, "Gagal konek ke Payment Service", err)
 	}
@@ -41,7 +42,7 @@ func main() {
 	paymentClient := payment.NewPaymentServiceClient(grpcConnPayment)
 
 	// Koneksi ke Product Service
-	grpcConnProduct, err := utils.ConnectGrpc(ServiceName, os.Getenv("GRPC_PRODUCT_ADDRESS"))
+	grpcConnProduct, err := config.ConnectGrpc(ServiceName, os.Getenv("GRPC_PRODUCT_ADDRESS"))
 	if err != nil {
 		utils.LogFatal(ServiceName, "Gagal konek ke Product Service", err)
 	}
@@ -72,8 +73,8 @@ func main() {
 	}
 }
 
-func setupRabbitMqConnection() *utils.RabbitMQ {
-	rabbit, err := utils.ConnectRabbitMQ(ServiceName, os.Getenv("RABBITMQ_URL"))
+func setupRabbitMqConnection() *config.RabbitMQ {
+	rabbit, err := config.ConnectRabbitMQ(ServiceName, os.Getenv("RABBITMQ_URL"))
 	if err != nil {
 		utils.LogFatal(ServiceName, "Gagal terhubung ke RabbitMQ", err)
 	}

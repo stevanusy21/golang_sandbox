@@ -42,6 +42,15 @@ type UserDetailResponse struct {
 	CreatedAt time.Time  `json:"created_at"`
 }
 
+type LoginRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type LoginResponse struct {
+	Token string `json:"token"`
+}
+
 func (r UserCreateRequest) Validate() error {
 	if utils.IsEmpty(r.Username) {
 		return errors.New("Username tidak boleh kosong")
@@ -108,6 +117,22 @@ func (r UserUpdateRequest) Validate() error {
 	}
 
 	if r.Email != nil && !utils.IsEmail(*r.Email) {
+		return errors.New("Format email tidak valid")
+	}
+
+	return nil
+}
+
+func (r LoginRequest) Validate() error {
+	if utils.IsEmpty(r.Email) {
+		return errors.New("Email tidak boleh kosong")
+	}
+
+	if utils.IsEmpty(r.Password) {
+		return errors.New("Password tidak boleh kosong")
+	}
+
+	if !utils.IsEmail(r.Email) {
 		return errors.New("Format email tidak valid")
 	}
 

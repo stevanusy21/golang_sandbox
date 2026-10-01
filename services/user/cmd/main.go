@@ -7,6 +7,7 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/joho/godotenv"
+	"github.com/stevanusy21/golang_sandbox/pkg/config"
 	"github.com/stevanusy21/golang_sandbox/pkg/utils"
 	deliveryHttp "github.com/stevanusy21/golang_sandbox/services/user/internal/delivery/http"
 	"github.com/stevanusy21/golang_sandbox/services/user/internal/repository"
@@ -19,7 +20,7 @@ func main() {
 		utils.LogErrorNoValue("User Service", "File Env tidak ditemukan, menggunakan environment variables sistem")
 	}
 
-	db, err := utils.ConnectDB("pgx", os.Getenv("DB_DSN"))
+	db, err := config.ConnectDB("pgx", os.Getenv("DB_DSN"))
 	if err != nil {
 		utils.LogFatal("User Service", "Gagal terhubung ke database", err)
 	}
@@ -30,11 +31,7 @@ func main() {
 	userHandler := deliveryHttp.NewUserHandler(userUsecase)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /users", userHandler.CreateUser)
-	mux.HandleFunc("PATCH /users/{id}/profile", userHandler.UpdateUser)
-	mux.HandleFunc("PUT /users/{id}/password", userHandler.ChangePasswordUser)
-	mux.HandleFunc("PATCH /users/{id}/status", userHandler.ChangeStatusUser)
-	mux.HandleFunc("GET /users/{id}", userHandler.GetUserById)
+	userHandler.RegisterRoutes(mux)
 
 	port := fmt.Sprintf(":%s", os.Getenv("APP_PORT"))
 	utils.LogInfo("User Service", "User Service (HTTP) berjalan di port "+port)

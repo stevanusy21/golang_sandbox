@@ -8,6 +8,7 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/joho/godotenv"
+	"github.com/stevanusy21/golang_sandbox/pkg/config"
 	"github.com/stevanusy21/golang_sandbox/pkg/utils"
 	"github.com/stevanusy21/golang_sandbox/proto/payment"
 	deliveryGrpc "github.com/stevanusy21/golang_sandbox/services/payment/internal/delivery/grpc"
@@ -26,7 +27,7 @@ func main() {
 		utils.LogErrorNoValue(ServiceName, "File .env tidak ditemukan, menggunakan environment variables sistem")
 	}
 
-	db, err := utils.ConnectDB("pgx", os.Getenv("DB_DSN"))
+	db, err := config.ConnectDB("pgx", os.Getenv("DB_DSN"))
 	if err != nil {
 		utils.LogFatal(ServiceName, "Gagal terhubung ke database", err)
 	}
@@ -72,8 +73,8 @@ func main() {
 	}
 }
 
-func setupRabbitMqConnection() *utils.RabbitMQ {
-	rabbit, err := utils.ConnectRabbitMQ(ServiceName, os.Getenv("RABBITMQ_URL"))
+func setupRabbitMqConnection() *config.RabbitMQ {
+	rabbit, err := config.ConnectRabbitMQ(ServiceName, os.Getenv("RABBITMQ_URL"))
 	if err != nil {
 		utils.LogFatal(ServiceName, "Gagal terhubung ke RabbitMQ", err)
 	}

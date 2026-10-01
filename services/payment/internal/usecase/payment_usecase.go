@@ -7,6 +7,7 @@ import (
 
 	"github.com/midtrans/midtrans-go/coreapi"
 	amqp "github.com/rabbitmq/amqp091-go"
+	"github.com/stevanusy21/golang_sandbox/pkg/config"
 	"github.com/stevanusy21/golang_sandbox/pkg/utils"
 	"github.com/stevanusy21/golang_sandbox/services/payment/internal/domain"
 	"github.com/stevanusy21/golang_sandbox/services/payment/internal/gateway"
@@ -16,7 +17,7 @@ import (
 type PaymentUsecase struct {
 	repo    *repository.PaymentRepository
 	gateway gateway.PaymentGateway
-	rabbit  *utils.RabbitMQ
+	rabbit  *config.RabbitMQ
 }
 
 type PaymentUpdatedEvent struct {
@@ -24,7 +25,7 @@ type PaymentUpdatedEvent struct {
 	Status  string `json:"status"`
 }
 
-func NewPaymentUsecase(repo *repository.PaymentRepository, gw gateway.PaymentGateway, rabbit *utils.RabbitMQ) *PaymentUsecase {
+func NewPaymentUsecase(repo *repository.PaymentRepository, gw gateway.PaymentGateway, rabbit *config.RabbitMQ) *PaymentUsecase {
 	return &PaymentUsecase{repo: repo, gateway: gw, rabbit: rabbit}
 }
 

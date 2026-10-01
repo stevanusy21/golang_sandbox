@@ -9,6 +9,15 @@ var (
 	ErrQueryFailed           = errors.New("Gagal melakukan query")
 	ErrScanFailed			 = errors.New("Gagal memproses data dari query database")
 
+	//Token
+	ErrTokenMissing          = errors.New("Token tidak ditemukan")
+	ErrTokenInvalid          = errors.New("Token tidak valid")
+	ErrTokenExpired          = errors.New("Token sudah expired")
+	ErrTokenCreatedFailed    = errors.New("Gagal membuat token")
+	ErrTokenParseFailed    = errors.New("Gagal memparsing token")
+	ErrJwtSecretMissing 	= errors.New("JWT Secret tidak ditemukan")
+	
+
 	//User
 	ErrUserNotFound          = errors.New("User tidak ditemukan")
 	ErrUsernameAlreadyExists = errors.New("Username sudah terdaftar")
@@ -17,6 +26,8 @@ var (
 	ErrUserCreationFailed    = errors.New("Gagal menyimpan user")
 	ErrUserUpdateFailed      = errors.New("Gagal update user")
 	ErrUserDeleteFailed      = errors.New("Gagal menghapus user")
+	ErrUserChangePasswordFailed = errors.New("Gagal mengubah password user")
+	ErrUserChangeStatusFailed = errors.New("Gagal mengubah status user")
 	
 	//Order
 	ErrOrderNotFound       = errors.New("Order tidak ditemukan")

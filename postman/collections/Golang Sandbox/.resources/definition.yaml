@@ -1,5 +1,20 @@
 $kind: collection
 variables:
-  urlOrder: ""
-  urlProduct: ""
-  urlUser: ""
+  - key: token
+    secret: true
+    disabled: false
+  - key: urlOrder
+    value: ""
+    disabled: false
+  - key: urlProduct
+    value: ""
+    disabled: false
+  - key: urlUser
+    value: ""
+    disabled: false
+auth:
+  - id: 9a10fcef-b86a-4662-b729-f1dacfbf1e81
+    type: bearer
+    name: Bearer Token
+    credentials:
+      token: "{{token}}"

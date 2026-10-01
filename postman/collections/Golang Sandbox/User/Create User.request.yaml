@@ -12,4 +12,6 @@ body:
     \    \"password\": \"admin\"\r
 
     }    "
+auth:
+  type: noauth
 order: 3691815893940037
