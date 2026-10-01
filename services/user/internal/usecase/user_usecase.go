@@ -20,28 +20,28 @@ func NewUserUsecase(repo *repository.UserRepository) *UserUsecase {
 func (u *UserUsecase) CreateUser(payload *domain.UserCreateRequest) error {
 	existingUser, err := u.repo.CheckExistsBy("username", payload.Username)
 	if err == nil && existingUser {
-		return domain.ErrUsernameAlreadyExists
+		return utils.ErrUsernameAlreadyExists
 	}
 
 	existingUser, err = u.repo.CheckExistsBy("email", payload.Email)
 	if err == nil && existingUser {
-		return domain.ErrEmailAlreadyExists
+		return utils.ErrEmailAlreadyExists
 	}
 
 	hashedPassword, err := utils.HashPassword(payload.Password)
 	if err != nil {
-		return domain.ErrHashPassword
+		return utils.ErrHashPassword
 	}
 
 	user := domain.User{
-		Username:  payload.Username,
-		Email:     payload.Email,
-		Password:  string(hashedPassword),
-		Status:    domain.UserActive,
+		Username: payload.Username,
+		Email:    payload.Email,
+		Password: string(hashedPassword),
+		Status:   domain.UserActive,
 	}
 
 	if err := u.repo.CreateUser(&user); err != nil {
-		return fmt.Errorf("%w: %v", domain.ErrUserCreationFailed, err)
+		return fmt.Errorf("%w: %v", utils.ErrUserCreationFailed, err)
 	}
 
 	return nil
@@ -50,13 +50,13 @@ func (u *UserUsecase) CreateUser(payload *domain.UserCreateRequest) error {
 func (u *UserUsecase) UpdateUser(id int, payload *domain.UserUpdateRequest) error {
 	user, err := u.repo.GetUserById(id)
 	if err != nil {
-		return domain.ErrUserNotFound
+		return utils.ErrUserNotFound
 	}
 
 	if payload.Username != nil {
 		existingUser, err := u.repo.CheckExistsBy("username", *payload.Username)
 		if err == nil && existingUser {
-			return domain.ErrUsernameAlreadyExists
+			return utils.ErrUsernameAlreadyExists
 		}
 		user.Username = *payload.Username
 	}
@@ -64,13 +64,13 @@ func (u *UserUsecase) UpdateUser(id int, payload *domain.UserUpdateRequest) erro
 	if payload.Email != nil {
 		existingUser, err := u.repo.CheckExistsBy("email", *payload.Email)
 		if err == nil && existingUser {
-			return domain.ErrEmailAlreadyExists
+			return utils.ErrEmailAlreadyExists
 		}
 		user.Email = *payload.Email
 	}
 
 	if err := u.repo.UpdateUser(id, &user); err != nil {
-		return fmt.Errorf("%w: %v", domain.ErrUserUpdateFailed, err)
+		return fmt.Errorf("%w: %v", utils.ErrUserUpdateFailed, err)
 	}
 
 	return nil
@@ -79,24 +79,24 @@ func (u *UserUsecase) UpdateUser(id int, payload *domain.UserUpdateRequest) erro
 func (u *UserUsecase) ChangePasswordUser(id int, payload *domain.UserChangePasswordRequest) error {
 	user, err := u.repo.GetUserById(id)
 	if err != nil {
-		return domain.ErrUserNotFound
+		return utils.ErrUserNotFound
 	}
 
 	if !utils.VerifyPassword(user.Password, payload.OldPassword) {
-		return fmt.Errorf("%w: %v", domain.ErrInvalidRequest, "Password lama tidak sesuai")
+		return fmt.Errorf("%w: %v", utils.ErrInvalidRequest, "Password lama tidak sesuai")
 	}
 
 	if payload.NewPassword != payload.ConfirmPassword {
-		return fmt.Errorf("%w: %v", domain.ErrInvalidRequest, "Konfirmasi password tidak sama")
+		return fmt.Errorf("%w: %v", utils.ErrInvalidRequest, "Konfirmasi password tidak sama")
 	}
 
 	hashedPassword, err := utils.HashPassword(payload.NewPassword)
 	if err != nil {
-		return domain.ErrHashPassword
+		return utils.ErrHashPassword
 	}
 
 	if err := u.repo.ChangePasswordUser(id, string(hashedPassword)); err != nil {
-		return fmt.Errorf("%w: %v", domain.ErrUserUpdateFailed, err)
+		return fmt.Errorf("%w: %v", utils.ErrUserUpdateFailed, err)
 	}
 
 	return nil
@@ -105,9 +105,9 @@ func (u *UserUsecase) ChangePasswordUser(id int, payload *domain.UserChangePassw
 func (u *UserUsecase) ChangeStatusUser(id int, payload *domain.UserChangeStatusRequest) error {
 	err := u.repo.ChangeStatusUser(id, payload.Status)
 	if err == sql.ErrNoRows {
-		return domain.ErrUserNotFound
+		return utils.ErrUserNotFound
 	} else if err != nil {
-		return fmt.Errorf("%w: %v", domain.ErrUserUpdateFailed, err)
+		return fmt.Errorf("%w: %v", utils.ErrUserUpdateFailed, err)
 	} else {
 		return nil
 	}
@@ -116,7 +116,7 @@ func (u *UserUsecase) ChangeStatusUser(id int, payload *domain.UserChangeStatusR
 func (u *UserUsecase) GetUserById(id int) (domain.UserDetailResponse, error) {
 	user, err := u.repo.GetUserById(id)
 	if err != nil {
-		return domain.UserDetailResponse{}, fmt.Errorf("%w: %v", domain.ErrUserNotFound, err)
+		return domain.UserDetailResponse{}, fmt.Errorf("%w: %v", utils.ErrUserNotFound, err)
 	}
 
 	return user.ToUserDetailResponse(), nil

@@ -104,7 +104,7 @@ func (r *ProductRepository) GetAllProducts(filter domain.ProductFilter) ([]domai
 			&p.UpdatedAt,
 			&p.DeletedAt,
 		); err != nil {
-			return nil, fmt.Errorf("%w: %v", domain.ErrProductScanFailed, err)
+			return nil, fmt.Errorf("%w: %v", utils.ErrScanFailed, err)
 		}
 
 		products = append(products, p)
@@ -165,17 +165,17 @@ func (r *ProductRepository) DeductStock(id int, quantity int) error {
 
 	result, err := r.db.Exec(query, quantity, id)
 	if err != nil {
-		return fmt.Errorf("%w: %v", domain.ErrProductQueryFailed, err)
+		return fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
 	}
-	
+
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		return fmt.Errorf("%w: %v", domain.ErrProductQueryFailed, err)
+		return fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
 	}
 
 	if rowsAffected == 0 {
-		return domain.ErrProductStockNotEnough
+		return utils.ErrProductStockNotEnough
 	}
-	
+
 	return nil
 }

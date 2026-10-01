@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/stevanusy21/golang_sandbox/pkg/utils"
 	"github.com/stevanusy21/golang_sandbox/services/payment/internal/domain"
 )
 
@@ -33,7 +34,7 @@ func (r *PaymentRepository) UpdatePayment(p *domain.PaymentRecord) error {
 
 	_, err := r.db.Exec(query, p.Status, p.TransactionId, p.OrderId)
 	if err != nil {
-		return fmt.Errorf("%w: %v", domain.ErrFailedToUpdatePayment, err)
+		return fmt.Errorf("%w: %v", utils.ErrPaymentUpdateFailed, err)
 	}
 
 	return nil
@@ -57,20 +58,20 @@ func (r *PaymentRepository) GetPaymentByOrderId(orderId string) (*domain.Payment
 		WHERE order_id = $1`
 
 	err := r.db.QueryRow(query, orderId).Scan(
-		&record.Id, 
-		&record.OrderId, 
-		&record.Amount, 
-		&record.PaymentMethod, 
-		&record.Status, 
-		&record.TransactionId, 
-		&record.CreatedAt, 
-		&record.UpdatedAt, 
+		&record.Id,
+		&record.OrderId,
+		&record.Amount,
+		&record.PaymentMethod,
+		&record.Status,
+		&record.TransactionId,
+		&record.CreatedAt,
+		&record.UpdatedAt,
 		&record.DeletedAt,
 	)
 	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("%w: %v", domain.ErrRecordNotFound, err)
+		return nil, fmt.Errorf("%w: %v", utils.ErrPaymentNotFound, err)
 	} else if err != nil {
-		return nil, fmt.Errorf("%w: %v", domain.ErrQueryFailed, err)
+		return nil, fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
 	}
 
 	return &record, nil

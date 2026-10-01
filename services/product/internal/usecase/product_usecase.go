@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/stevanusy21/golang_sandbox/pkg/utils"
 	"github.com/stevanusy21/golang_sandbox/services/product/internal/domain"
 	"github.com/stevanusy21/golang_sandbox/services/product/internal/repository"
 )
@@ -21,7 +22,7 @@ func NewProductUsecase(repo *repository.ProductRepository) *ProductUsecase {
 func (u *ProductUsecase) GetProductById(id int) (domain.ProductDetailResponse, error) {
 	product, err := u.productRepo.GetProductById(id)
 	if err != nil {
-		return domain.ProductDetailResponse{}, fmt.Errorf("%w: %v", domain.ErrProductNotFound, err)
+		return domain.ProductDetailResponse{}, fmt.Errorf("%w: %v", utils.ErrProductNotFound, err)
 	}
 	return product.ToProductResponse(), nil
 }
@@ -29,7 +30,7 @@ func (u *ProductUsecase) GetProductById(id int) (domain.ProductDetailResponse, e
 func (u *ProductUsecase) GetAllProducts(filter domain.ProductFilter) ([]domain.ProductDetailResponse, error) {
 	products, err := u.productRepo.GetAllProducts(filter)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %v", domain.ErrProductQueryFailed, err)
+		return nil, fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
 	}
 
 	response := make([]domain.ProductDetailResponse, 0, len(products))
@@ -49,7 +50,7 @@ func (u *ProductUsecase) CreateProduct(payload *domain.ProductCreateRequest) err
 	}
 
 	if err := u.productRepo.CreateProduct(&product); err != nil {
-		return domain.ErrProductCreationFailed
+		return utils.ErrProductCreationFailed
 	}
 
 	return nil
@@ -59,9 +60,9 @@ func (u *ProductUsecase) CreateProduct(payload *domain.ProductCreateRequest) err
 func (u *ProductUsecase) UpdateProduct(id int, payload *domain.ProductUpdateRequest) error {
 	err := u.productRepo.UpdateProduct(id, payload)
 	if err == sql.ErrNoRows {
-		return domain.ErrProductNotFound
+		return utils.ErrProductNotFound
 	} else if err != nil {
-		return fmt.Errorf("%w: %v", domain.ErrProductUpdateFailed, err)
+		return fmt.Errorf("%w: %v", utils.ErrProductUpdateFailed, err)
 	} else {
 		return nil
 	}
@@ -70,9 +71,9 @@ func (u *ProductUsecase) UpdateProduct(id int, payload *domain.ProductUpdateRequ
 func (u *ProductUsecase) DeleteProduct(id int) error {
 	err := u.productRepo.DeleteProduct(id)
 	if err == sql.ErrNoRows {
-		return domain.ErrProductNotFound
+		return utils.ErrProductNotFound
 	} else if err != nil {
-		return fmt.Errorf("%w: %v", domain.ErrProductDeleteFailed, err)
+		return fmt.Errorf("%w: %v", utils.ErrProductDeleteFailed, err)
 	} else {
 		return nil
 	}
@@ -80,7 +81,7 @@ func (u *ProductUsecase) DeleteProduct(id int) error {
 
 func (u *ProductUsecase) DeductStock(id int, quantity int) error {
 	if quantity <= 0 {
-		return fmt.Errorf("%w: %v", domain.ErrInvalidRequest, "Quantity harus lebih besar dari 0")
+		return fmt.Errorf("%w: %v", utils.ErrInvalidRequest, "Quantity harus lebih besar dari 0")
 	}
 	if err := u.productRepo.DeductStock(id, quantity); err != nil {
 		return err

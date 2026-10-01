@@ -32,7 +32,7 @@ func (h *OrderHandler) Checkout(w http.ResponseWriter, r *http.Request) {
 	orderDetailResponse, err := h.orderUsecase.CreateOrder(&payload)
 	if err != nil {
 		switch {
-		case errors.Is(err, domain.ErrOrderCreationFailed):
+		case errors.Is(err, utils.ErrOrderCreationFailed):
 			response.Error(w, http.StatusBadRequest, err.Error())
 			return
 		default:
@@ -120,7 +120,7 @@ func (h *OrderHandler) GetOrderById(w http.ResponseWriter, r *http.Request) {
 	order, err := h.orderUsecase.GetOrderById(id)
 	if err != nil {
 		switch {
-		case errors.Is(err, domain.ErrOrderNotFound):
+		case errors.Is(err, utils.ErrOrderNotFound):
 			response.Error(w, http.StatusNotFound, err.Error())
 			return
 		default:

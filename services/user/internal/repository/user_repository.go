@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/stevanusy21/golang_sandbox/pkg/utils"
 	"github.com/stevanusy21/golang_sandbox/services/user/internal/domain"
 )
 
@@ -86,6 +87,43 @@ func (r *UserRepository) GetUserById(id int) (domain.User, error) {
 	)
 
 	return u, err
+}
+
+func (r *UserRepository) GetUserByEmail(email string) (domain.User, error) {
+	query := `
+		SELECT
+			id,
+			username,
+			email,
+			password,
+			status,
+			created_at,
+			updated_at,
+			deleted_at
+		FROM users
+		WHERE email = $1 AND deleted_at IS NULL
+	`
+	var u domain.User
+
+	err := r.db.QueryRow(query, email).Scan(
+		&u.ID,
+		&u.Username,
+		&u.Email,
+		&u.Password,
+		&u.Status,
+		&u.CreatedAt,
+		&u.UpdatedAt,
+		&u.DeletedAt,
+	)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return u, fmt.Errorf("%w: %v", utils.ErrUserNotFound, err)
+		}
+		return u, fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
+	}
+
+	return u, nil
 }
 
 func (r *UserRepository) CheckExistsBy(column string, value any) (bool, error) {

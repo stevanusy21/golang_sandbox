@@ -2,6 +2,8 @@ package domain
 
 import (
 	"fmt"
+
+	"github.com/stevanusy21/golang_sandbox/pkg/utils"
 )
 
 type OrderStatus string
@@ -30,6 +32,6 @@ func ParseOrderStatus(status string) (OrderStatus, error) {
 	case "FAILED", "CANCEL", "EXPIRE", "FAILURE", "DENY":
 		return OrderFailed, nil
 	default:
-		return "", fmt.Errorf("%w: %v", ErrInvalidRequest, "Status tidak valid")
+		return "", fmt.Errorf("%w: %v", utils.ErrInvalidRequest, "Status tidak valid")
 	}
 }

@@ -8,6 +8,8 @@ import (
 	"github.com/stevanusy21/golang_sandbox/services/order/internal/domain"
 )
 
+const LogLocation = "Order Repository"
+
 type OrderRepository struct {
 	db *sql.DB
 }
@@ -16,42 +18,39 @@ func NewOrderRepository(db *sql.DB) *OrderRepository {
 	return &OrderRepository{db: db}
 }
 
-func (r *OrderRepository) CreateOrder(order *domain.Order) (domain.Order, error) {
+func (r *OrderRepository) CreateOrder(o *domain.Order) (domain.Order, error) {
 	query := `
 		INSERT INTO orders (id, user_id, product_id, quantity, total_amount, status) 
 		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING id, user_id, product_id, quantity, total_amount, status, created_at, updated_at, deleted_at
 	`
 
-	var orderResponse domain.Order
+	var order domain.Order
 	err := r.db.QueryRow(
 		query,
-		order.Id,
-		order.UserId,
-		order.ProductId,
-		order.Quantity,
-		order.TotalAmount,
-		order.Status,
+		o.Id,
+		o.UserId,
+		o.ProductId,
+		o.Quantity,
+		o.TotalAmount,
+		o.Status,
 	).Scan(
-		&orderResponse.Id,
-		&orderResponse.UserId,
-		&orderResponse.ProductId,
-		&orderResponse.Quantity,
-		&orderResponse.TotalAmount,
-		&orderResponse.Status,
-		&orderResponse.CreatedAt,
-		&orderResponse.UpdatedAt,
-		&orderResponse.DeletedAt,
+		&order.Id,
+		&order.UserId,
+		&order.ProductId,
+		&order.Quantity,
+		&order.TotalAmount,
+		&order.Status,
+		&order.CreatedAt,
+		&order.UpdatedAt,
+		&order.DeletedAt,
 	)
 	if err != nil {
-		utils.LogError("Order Repository", "Error create order", err)
-		if err == sql.ErrNoRows {
-			return domain.Order{}, domain.ErrOrderNotFound
-		}
-		return orderResponse, fmt.Errorf("%w: %v", domain.ErrOrderCreationFailed, err)
+		utils.LogError(LogLocation, utils.ErrOrderCreationFailed.Error(), err)
+		return order, fmt.Errorf("%w: %v", utils.ErrOrderCreationFailed, err)
 	}
 
-	return orderResponse, nil
+	return order, nil
 }
 
 func (r *OrderRepository) UpdateStatus(orderId string, status domain.OrderStatus) error {
@@ -59,8 +58,8 @@ func (r *OrderRepository) UpdateStatus(orderId string, status domain.OrderStatus
 
 	_, err := r.db.Exec(query, status, orderId)
 	if err != nil {
-		utils.LogError("Order Repository", "Error update status", err)
-		return domain.ErrOrderUpdateFailed
+		utils.LogError(LogLocation, utils.ErrOrderUpdateFailed.Error(), err)
+		return fmt.Errorf("%w: %v", utils.ErrOrderUpdateFailed, err)
 	}
 
 	return nil
@@ -104,8 +103,8 @@ func (r *OrderRepository) GetAllOrders(filter domain.OrderFilter) ([]domain.Orde
 
 	rows, err := r.db.Query(query, args...)
 	if err != nil {
-		utils.LogError("Order Repository", "Error query all orders", err)
-		return nil, domain.ErrOrderQueryFailed
+		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
+		return nil, fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
 	}
 
 	defer rows.Close()
@@ -125,16 +124,16 @@ func (r *OrderRepository) GetAllOrders(filter domain.OrderFilter) ([]domain.Orde
 			&order.UpdatedAt,
 			&order.DeletedAt,
 		); err != nil {
-			utils.LogError("Order Repository", "Error scanning order", err)
-			return nil, domain.ErrOrderScanFailed
+			utils.LogError(LogLocation, utils.ErrScanFailed.Error(), err)
+			return nil, fmt.Errorf("%w: %v", utils.ErrScanFailed, err)
 		}
 
 		orders = append(orders, order)
 	}
 
 	if err := rows.Err(); err != nil {
-		utils.LogError("Order Repository", "Error in rows", err)
-		return nil, domain.ErrOrderQueryFailed
+		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
+		return nil, fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
 	}
 
 	return orders, nil
@@ -170,11 +169,13 @@ func (r *OrderRepository) GetOrderById(id string) (domain.Order, error) {
 		&order.DeletedAt,
 	)
 
-	if err == sql.ErrNoRows {
-		return domain.Order{}, domain.ErrOrderNotFound
-	} else if err != nil {
-		utils.LogError("Order Repository", "Error get order by id", err)
-		return domain.Order{}, domain.ErrOrderQueryFailed
+	if err != nil {
+		if err == sql.ErrNoRows {
+			utils.LogErrorNoValue(LogLocation, utils.ErrOrderNotFound.Error())
+			return domain.Order{}, utils.ErrOrderNotFound
+		}
+		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
+		return domain.Order{}, fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
 	}
 
 	return order, nil

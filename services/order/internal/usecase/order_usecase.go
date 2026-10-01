@@ -12,6 +12,8 @@ import (
 	"github.com/stevanusy21/golang_sandbox/services/order/internal/repository"
 )
 
+const LogLocation = "Order Usecase"
+
 type OrderUsecase struct {
 	orderRepo     *repository.OrderRepository
 	paymentClient payment.PaymentServiceClient
@@ -34,8 +36,8 @@ func (u *OrderUsecase) CreateOrder(payload *domain.OrderCreateRequest) (domain.O
 		ProductId: int32(payload.ProductId),
 	})
 	if err != nil {
-		utils.LogError("Order Service", "error get product detail", err)
-		return domain.OrderDetailResponse{}, fmt.Errorf("%w: %v", domain.ErrOrderCreationFailed, err)
+		utils.LogError(LogLocation, "Error get product detail", err)
+		return domain.OrderDetailResponse{}, fmt.Errorf("%w: %v", utils.ErrOrderCreationFailed, err)
 	}
 
 	deductRes, err := u.productClient.DeductStock(ctx, &product.DeductStockRequest{
@@ -44,7 +46,7 @@ func (u *OrderUsecase) CreateOrder(payload *domain.OrderCreateRequest) (domain.O
 	})
 
 	if err != nil || !deductRes.IsSuccess {
-		return domain.OrderDetailResponse{}, fmt.Errorf("%w: %v", domain.ErrOrderCreationFailed, err)
+		return domain.OrderDetailResponse{}, fmt.Errorf("%w: %v", utils.ErrOrderCreationFailed, err)
 	}
 
 	order := domain.Order{
