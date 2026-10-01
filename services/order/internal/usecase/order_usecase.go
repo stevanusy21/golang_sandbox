@@ -34,6 +34,7 @@ func (u *OrderUsecase) CreateOrder(payload *domain.OrderCreateRequest) (domain.O
 		ProductId: int32(payload.ProductId),
 	})
 	if err != nil {
+		utils.LogError("Order Service", "error get product detail", err)
 		return domain.OrderDetailResponse{}, fmt.Errorf("%w: %v", domain.ErrOrderCreationFailed, err)
 	}
 
@@ -46,34 +47,31 @@ func (u *OrderUsecase) CreateOrder(payload *domain.OrderCreateRequest) (domain.O
 		return domain.OrderDetailResponse{}, fmt.Errorf("%w: %v", domain.ErrOrderCreationFailed, err)
 	}
 
-	totalAmount := float64(prod.Price) * float64(payload.Quantity)
-
 	order := domain.Order{
 		Id:          fmt.Sprintf("ORD-%d", time.Now().UnixMilli()),
 		UserId:      payload.UserId,
 		ProductId:   payload.ProductId,
 		Quantity:    payload.Quantity,
-		TotalAmount: totalAmount,
+		TotalAmount: float64(prod.Price) * float64(payload.Quantity),
 		Status:      domain.OrderPending,
 	}
 
 	createdOrder, err := u.orderRepo.CreateOrder(&order)
 	if err != nil {
-		return domain.OrderDetailResponse{}, fmt.Errorf("%w: %v", domain.ErrOrderCreationFailed, err)
+		fmt.Println("Error di create order")
+		return domain.OrderDetailResponse{}, err
 	}
 
 	go u.processPaymentBackground(
 		createdOrder.Id,
 		createdOrder.TotalAmount,
-		string(payload.PaymentMethod),
-		payload.ProductId,
-		payload.Quantity,
+		payload.PaymentMethod,
 	)
 
 	return createdOrder.ToOrderDetailResponse(), nil
 }
 
-func (u *OrderUsecase) processPaymentBackground(orderId string, amount float64, paymentMethod string, productId, qty int) {
+func (u *OrderUsecase) processPaymentBackground(orderId string, amount float64, paymentMethod domain.PaymentMethod) {
 	defer func() {
 		if err := recover(); err != nil {
 			utils.LogErrorNoValue("Order Background", fmt.Sprintf("Panic recovered in background: %v", err))
@@ -86,7 +84,7 @@ func (u *OrderUsecase) processPaymentBackground(orderId string, amount float64, 
 	req := &payment.PaymentRequest{
 		OrderId:       orderId,
 		Amount:        amount,
-		PaymentMethod: paymentMethod,
+		PaymentMethod: string(paymentMethod),
 	}
 
 	res, err := u.paymentClient.ProcessPayment(ctx, req)
@@ -96,9 +94,7 @@ func (u *OrderUsecase) processPaymentBackground(orderId string, amount float64, 
 		return
 	}
 
-	utils.LogInfo("Order Background", fmt.Sprintf("Payment SUCCESS for Order %s", orderId))
-	u.orderRepo.UpdateStatus(orderId, domain.OrderSuccess)
-
+	utils.LogInfo("Order Background", fmt.Sprintf("Payment CREATED for Order %s", orderId))
 }
 
 func (u *OrderUsecase) GetAllOrders(filter domain.OrderFilter) ([]domain.OrderDetailResponse, error) {
@@ -122,4 +118,12 @@ func (u *OrderUsecase) GetOrderById(id string) (domain.OrderDetailResponse, erro
 	}
 
 	return order.ToOrderDetailResponse(), nil
+}
+
+func (u *OrderUsecase) UpdateOrderStatus(orderId string, status string) error {
+	parsedStatus, err := domain.ParseOrderStatus(status)
+	if err != nil {
+		return err
+	}
+	return u.orderRepo.UpdateStatus(orderId, parsedStatus)
 }

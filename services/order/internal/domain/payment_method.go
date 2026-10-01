@@ -3,15 +3,15 @@ package domain
 type PaymentMethod string
 
 const (
-	BANK_TRANSFER   PaymentMethod = "BANK_TRANSFER"
-	VIRTUAL_ACCOUNT PaymentMethod = "VIRTUAL_ACCOUNT"
-	CREDIT_CARD     PaymentMethod = "CREDIT_CARD"
-	GOPAY           PaymentMethod = "GOPAY"
+	PaymentTypeBankTransfer PaymentMethod = "bank_transfer"
+	PaymentTypeVirtualAccount PaymentMethod = "virtual_account"
+	PaymentTypeCreditCard PaymentMethod = "credit_card"
+	PaymentTypeGopay PaymentMethod = "gopay"
 )
 
 func (p PaymentMethod) IsValid() bool {
 	switch p {
-	case BANK_TRANSFER, VIRTUAL_ACCOUNT, CREDIT_CARD, GOPAY:
+	case PaymentTypeBankTransfer, PaymentTypeVirtualAccount, PaymentTypeCreditCard, PaymentTypeGopay:
 		return true
 	default:
 		return false

@@ -25,16 +25,22 @@ func NewMidtransGateway(serverKey string, isProduction bool) *MidtransGateway {
 	}
 }
 
-func (m *MidtransGateway) Charge(orderId string, amount float64, paymentMethod string) (*PaymentResult, error) {
-	chargeReq := &coreapi.ChargeReq{
-		PaymentType: coreapi.PaymentTypeGopay,
-		TransactionDetails: midtrans.TransactionDetails{
-			OrderID: orderId,
-			GrossAmt: int64(amount),
-		},
-		Gopay: &coreapi.GopayDetails{
-			EnableCallback: false,
-		},
+func (m *MidtransGateway) Charge(orderId string, amount float64, paymentMethod coreapi.CoreapiPaymentType) (*PaymentResult, error) {
+	chargeReq := &coreapi.ChargeReq{}
+
+	switch paymentMethod {
+	case coreapi.PaymentTypeGopay:
+		chargeReq.Gopay = &coreapi.GopayDetails{
+			EnableCallback: true,
+		}
+	default:
+		return nil, fmt.Errorf("unsupported payment method: %v", paymentMethod)
+	}
+
+	chargeReq.PaymentType = paymentMethod
+	chargeReq.TransactionDetails = midtrans.TransactionDetails{
+		OrderID:  orderId,
+		GrossAmt: int64(amount),
 	}
 
 	res, midtransErr := m.client.ChargeTransaction(chargeReq)

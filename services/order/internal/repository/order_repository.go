@@ -20,6 +20,7 @@ func (r *OrderRepository) CreateOrder(order *domain.Order) (domain.Order, error)
 	query := `
 		INSERT INTO orders (id, user_id, product_id, quantity, total_amount, status) 
 		VALUES ($1, $2, $3, $4, $5, $6)
+		RETURNING id, user_id, product_id, quantity, total_amount, status, created_at, updated_at, deleted_at
 	`
 
 	var orderResponse domain.Order
@@ -44,6 +45,9 @@ func (r *OrderRepository) CreateOrder(order *domain.Order) (domain.Order, error)
 	)
 	if err != nil {
 		utils.LogError("Order Repository", "Error create order", err)
+		if err == sql.ErrNoRows {
+			return domain.Order{}, domain.ErrOrderNotFound
+		}
 		return orderResponse, fmt.Errorf("%w: %v", domain.ErrOrderCreationFailed, err)
 	}
 

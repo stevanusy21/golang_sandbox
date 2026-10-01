@@ -6,6 +6,7 @@ require (
 	github.com/jackc/pgx/v5 v5.11.0
 	github.com/joho/godotenv v1.5.1
 	github.com/midtrans/midtrans-go v1.3.8
+	github.com/rabbitmq/amqp091-go v1.15.0
 	golang.org/x/crypto v0.55.0
 	google.golang.org/grpc v1.84.0
 	google.golang.org/protobuf v1.36.12
