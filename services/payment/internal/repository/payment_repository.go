@@ -38,7 +38,7 @@ func (r *PaymentRepository) UpdatePayment(p *domain.PaymentRecord) error {
 	query := `
 		UPDATE payment_records 
 		SET status = $1, transaction_id = $2, updated_at = CURRENT_TIMESTAMP
-		WHERE order_id = $3
+		WHERE order_id = $3 AND deleted_at IS NULL
 	`
 
 	_, err := r.db.Exec(query, p.Status, p.TransactionId, p.OrderId)
@@ -63,7 +63,8 @@ func (r *PaymentRepository) GetPaymentByOrderId(orderId string) (*domain.Payment
 			updated_at, 
 			deleted_at 
 		FROM payment_records 
-		WHERE order_id = $1`
+		WHERE order_id = $1 AND deleted_at IS NULL
+	`
 
 	var record domain.PaymentRecord
 	err := r.db.QueryRow(query, orderId).Scan(

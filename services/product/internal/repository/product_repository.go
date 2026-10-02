@@ -30,7 +30,7 @@ func (r *ProductRepository) GetProductById(id int) (domain.Product, error) {
 			updated_at,
 			deleted_at 
 		FROM products 
-		WHERE id = $1
+		WHERE id = $1 AND deleted_at IS NULL
 	`
 
 	var p domain.Product
@@ -86,6 +86,8 @@ func (r *ProductRepository) GetAllProducts(filter domain.ProductFilter) ([]domai
 	if len(filter.Status) > 0 {
 		qb.WhereAny("AND", "status", filter.Status)
 	}
+
+	qb.WhereNull("AND", "deleted_at")
 
 	qb.OrderBy(filter.SortBy, filter.SortDir)
 	qb.LimitOffset(filter.Limit, filter.Offset)

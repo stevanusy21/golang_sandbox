@@ -73,6 +73,10 @@ func (q *PaginationQueryBuilder) WhereAny(condition string, column string, value
 	q.paramIndex++
 }
 
+func (q *PaginationQueryBuilder) WhereNull(condition string, column string) {
+	q.query.WriteString(fmt.Sprintf(" %s %s IS NULL", condition, column))
+}
+
 func (q *PaginationQueryBuilder) OrderBy(sortBy string, sortDir string) {
 	q.query.WriteString(fmt.Sprintf(" ORDER BY %s %s", sortBy, sortDir))
 }

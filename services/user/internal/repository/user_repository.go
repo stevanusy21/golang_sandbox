@@ -160,3 +160,76 @@ func (r *UserRepository) CheckExistsBy(column string, value any, excludeId *int)
 
 	return exists, nil
 }
+
+func (r *UserRepository) GetAllUsers(filter domain.UserFilter) ([]domain.User, error) {
+	qb := utils.NewPaginationQueryBuilder(`
+		SELECT 
+			id, 
+			username, 
+			email, 
+			status,
+			created_at,
+			updated_at,
+			deleted_at 
+		FROM users 
+		WHERE 1=1
+	`)
+
+	if filter.ID > 0 {
+		qb.Where("AND", "id", "=", filter.ID)
+	}
+
+	if filter.Username != "" {
+		qb.Where("AND", "username", "ILIKE", "%"+filter.Username+"%")
+	}
+
+	if filter.Email != "" {
+		qb.Where("AND", "email", "ILIKE", "%"+filter.Email+"%")
+	}
+
+	if len(filter.Status) > 0 {
+		qb.WhereAny("AND", "status", filter.Status)
+	}
+
+	qb.WhereNull("AND", "deleted_at")
+
+	qb.OrderBy(filter.SortBy, filter.SortDir)
+	qb.LimitOffset(filter.Limit, filter.Offset)
+
+	query, args := qb.Build()
+
+	rows, err := r.db.Query(query, args...)
+	if err != nil {
+		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
+		return nil, utils.ErrQueryFailed
+	}
+
+	defer rows.Close()
+
+	var users []domain.User
+	for rows.Next() {
+		var u domain.User
+
+		if err := rows.Scan(
+			&u.ID,
+			&u.Username,
+			&u.Email,
+			&u.Status,
+			&u.CreatedAt,
+			&u.UpdatedAt,
+			&u.DeletedAt,
+		); err != nil {
+			utils.LogError(LogLocation, utils.ErrScanFailed.Error(), err)
+			return nil, utils.ErrScanFailed
+		}
+
+		users = append(users, u)
+	}
+
+	if err := rows.Err(); err != nil {
+		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
+		return nil, utils.ErrQueryFailed
+	}
+
+	return users, nil
+}

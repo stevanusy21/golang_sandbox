@@ -8,8 +8,10 @@ import (
 )
 
 type UserFilter struct {
-	ID     *string       `form:"id"`
-	Status *[]UserStatus `form:"status"`
+	ID       int       `form:"id"`
+	Username string       `form:"username"`
+	Email    string       `form:"email"`
+	Status   []UserStatus `form:"status"`
 	utils.Pagination
 }
 

@@ -35,7 +35,7 @@ func (h *ProductHandler) RegisterRoutes(mux *http.ServeMux) {
 }
 
 func (h *ProductHandler) GetProductByID(w http.ResponseWriter, r *http.Request) {
-	id, err := request.GetIntParam(r, "id")
+	id, err := request.GetIntParam(r, "id", true)
 	if err != nil {
 		response.Error(w, http.StatusBadRequest, err.Error())
 		return
@@ -126,7 +126,7 @@ func (h *ProductHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ProductHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
-	id, err := request.GetIntParam(r, "id")
+	id, err := request.GetIntParam(r, "id", true)
 	if err != nil {
 		response.Error(w, http.StatusBadRequest, err.Error())
 		return
@@ -154,7 +154,7 @@ func (h *ProductHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ProductHandler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
-	id, err := request.GetIntParam(r, "id")
+	id, err := request.GetIntParam(r, "id", true)
 	if err != nil {
 		response.Error(w, http.StatusBadRequest, err.Error())
 		return

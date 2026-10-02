@@ -23,14 +23,17 @@ func DecodeJSON[T any](r *http.Request) (T, error) {
 	return payload, nil
 }
 
-func GetIntParam(r *http.Request, paramName string) (int, error) {
+func GetIntParam(r *http.Request, paramName string, required bool) (int, error) {
 	valStr := r.PathValue(paramName)
 	if valStr == "" {
 		valStr = r.URL.Query().Get(paramName)
 	}
 
 	if valStr == "" {
-		return 0, errors.New("Parameter " + paramName + " tidak ditemukan")
+		if required {
+			return 0, errors.New("Parameter " + paramName + " tidak ditemukan")
+		}
+		return 0, nil
 	}
 
 	val, err := strconv.Atoi(valStr)
@@ -41,14 +44,17 @@ func GetIntParam(r *http.Request, paramName string) (int, error) {
 	return val, nil
 }
 
-func GetStringParam(r *http.Request, paramName string) (string, error) {
+func GetStringParam(r *http.Request, paramName string, required bool) (string, error) {
 	valStr := r.PathValue(paramName)
 	if valStr == "" {
 		valStr = r.URL.Query().Get(paramName)
 	}
 
 	if valStr == "" {
-		return "", errors.New("Parameter " + paramName + " tidak ditemukan")
+		if required {
+			return "", errors.New("Parameter " + paramName + " tidak ditemukan")
+		}
+		return "", nil
 	}
 
 	return valStr, nil

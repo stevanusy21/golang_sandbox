@@ -45,8 +45,12 @@ func (u *OrderUsecase) CreateOrder(payload *domain.OrderCreateRequest) (domain.O
 		ProductId: int32(payload.ProductId),
 		Quantity:  int32(payload.Quantity),
 	})
-	if err != nil || !deductRes.IsSuccess {
+	if err != nil {
 		utils.LogError(LogLocation, utils.ErrDeductStockFailed.Error(), err)
+		return domain.OrderDetailResponse{}, utils.ErrDeductStockFailed
+	}
+	if !deductRes.IsSuccess {
+		utils.LogErrorNoValue(LogLocation, utils.ErrDeductStockFailed.Error())
 		return domain.OrderDetailResponse{}, utils.ErrDeductStockFailed
 	}
 
@@ -91,7 +95,7 @@ func (u *OrderUsecase) processPaymentBackground(orderId string, amount float64, 
 
 	res, err := u.paymentClient.ProcessPayment(ctx, req)
 	if err != nil || !res.IsSuccess {
-		utils.LogError(LogLocationBackground, fmt.Sprintf("%w untuk order ID %s", utils.ErrPaymentProcessFailed, orderId), err)
+		utils.LogError(LogLocationBackground, fmt.Sprintf("%s untuk order ID %s", utils.ErrPaymentProcessFailed.Error(), orderId), err)
 		u.orderRepo.UpdateStatus(orderId, domain.OrderFailed)
 		return
 	}

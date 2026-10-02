@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/stevanusy21/golang_sandbox/pkg/request"
 	"github.com/stevanusy21/golang_sandbox/pkg/response"
@@ -27,6 +28,7 @@ func (h *UserHandler) RegisterRoutes(mux *http.ServeMux) {
 	r.Public("POST /auth/login", h.Login)
 	r.Public("POST /users", h.CreateUser)
 	r.Public("PUT /users/{id}/password", h.ChangePasswordUser)
+	r.Protected("GET /users", h.GetAllUsers)
 	r.Protected("GET /users/{id}", h.GetUserById)
 	r.Protected("PATCH /users/{id}/profile", h.UpdateUser)
 	r.Protected("PATCH /users/{id}/status", h.ChangeStatusUser)
@@ -59,7 +61,7 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
-	id, err := request.GetIntParam(r, "id")
+	id, err := request.GetIntParam(r, "id", true)
 	if err != nil {
 		response.Error(w, http.StatusBadRequest, err.Error())
 		return
@@ -89,7 +91,7 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) ChangePasswordUser(w http.ResponseWriter, r *http.Request) {
-	id, err := request.GetIntParam(r, "id")
+	id, err := request.GetIntParam(r, "id", true)
 	if err != nil {
 		response.Error(w, http.StatusBadRequest, err.Error())
 		return
@@ -119,7 +121,7 @@ func (h *UserHandler) ChangePasswordUser(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *UserHandler) ChangeStatusUser(w http.ResponseWriter, r *http.Request) {
-	id, err := request.GetIntParam(r, "id")
+	id, err := request.GetIntParam(r, "id", true)
 	if err != nil {
 		response.Error(w, http.StatusBadRequest, err.Error())
 		return
@@ -147,7 +149,7 @@ func (h *UserHandler) ChangeStatusUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) GetUserById(w http.ResponseWriter, r *http.Request) {
-	id, err := request.GetIntParam(r, "id")
+	id, err := request.GetIntParam(r, "id", true)
 	if err != nil {
 		response.Error(w, http.StatusBadRequest, err.Error())
 		return
@@ -169,6 +171,74 @@ func (h *UserHandler) GetUserById(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, user)
 }
 
+func (h *UserHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
+	allowedSortColumns := map[string]bool{
+		"id":       true,
+		"username": true,
+		"email":    true,
+		"status":   true,
+	}
+
+	paramId, err := request.GetIntParam(r, "id", false)
+	if err != nil {
+		response.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	paramUsername, err := request.GetStringParam(r, "username", false)
+	if err != nil {
+		response.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	paramEmail, err := request.GetStringParam(r, "email", false)
+	if err != nil {
+		response.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	statusQuery := r.URL.Query().Get("status")
+	statusSlice := []domain.UserStatus{}
+
+	if statusQuery != "" {
+		for _, s := range strings.Split(statusQuery, ",") {
+			if !domain.UserStatus(s).IsValid() {
+				response.Error(w, http.StatusBadRequest, "Status tidak valid")
+				return
+			}
+			statusSlice = append(statusSlice, domain.UserStatus(s))
+		}
+	}
+
+	filter := domain.UserFilter{
+		ID:       paramId,
+		Username: paramUsername,
+		Email:    paramEmail,
+		Status:   statusSlice,
+		Pagination: utils.GeneratePaginationData(
+			r.URL.Query().Get("page"),
+			r.URL.Query().Get("limit"),
+			r.URL.Query().Get("sort_by"),
+			r.URL.Query().Get("sort_dir"),
+			allowedSortColumns,
+		),
+	}
+
+	users, err := h.userUsecase.GetAllUsers(&filter)
+	if err != nil {
+		switch {
+		case errors.Is(err, utils.ErrQueryFailed),
+			errors.Is(err, utils.ErrScanFailed):
+			response.Error(w, http.StatusInternalServerError, err.Error())
+		default:
+			response.Error(w, http.StatusInternalServerError, utils.ErrInternalServerError.Error())
+		}
+		return
+	}
+
+	response.JSON(w, http.StatusOK, users)
+}
+
 func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	payload, err := request.DecodeJSON[domain.LoginRequest](r)
 	if err != nil {
@@ -181,7 +251,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case errors.Is(err, utils.ErrUserNotFound):
 			response.Error(w, http.StatusUnauthorized, utils.ErrWrongEmailPassword.Error())
-		case errors.Is(err, utils.ErrWrongEmailPassword), 
+		case errors.Is(err, utils.ErrWrongEmailPassword),
 			errors.Is(err, utils.ErrUserNotActive):
 			response.Error(w, http.StatusUnauthorized, err.Error())
 		case errors.Is(err, utils.ErrTokenCreationFailed),

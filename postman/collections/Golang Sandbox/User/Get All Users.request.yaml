@@ -1,5 +1,5 @@
 $kind: http-request
-url: "{{urlProduct}}/products?page=0&limit=10&sort_by=id&sort_dir=desc&status=AVAILABLE"
+url: "{{urlUser}}/users?page=0&limit=10&sort_by=id&sort_dir=desc&id=4"
 method: GET
 queryParams:
   - key: page
@@ -18,8 +18,20 @@ queryParams:
     value: desc
     disabled: false
     description: ""
-  - key: status
-    value: AVAILABLE
+  - key: id
+    value: "4"
     disabled: false
     description: ""
-order: 2749638150688744
+  - key: username
+    value: null
+    disabled: true
+    description: ""
+  - key: email
+    value: null
+    disabled: true
+    description: ""
+  - key: status
+    value: AVAILABLE
+    disabled: true
+    description: ""
+order: 1380563267868

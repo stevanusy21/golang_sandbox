@@ -68,19 +68,19 @@ func (h *OrderHandler) GetAllOrders(w http.ResponseWriter, r *http.Request) {
 		"status":     true,
 	}
 
-	paramId, err := request.GetStringParam(r, "id")
+	paramId, err := request.GetStringParam(r, "id", false)
 	if err != nil {
 		response.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	paramUserId, err := request.GetIntParam(r, "user_id")
+	paramUserId, err := request.GetIntParam(r, "user_id", false)
 	if err != nil {
 		response.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	paramProductId, err := request.GetIntParam(r, "product_id")
+	paramProductId, err := request.GetIntParam(r, "product_id", false)
 	if err != nil {
 		response.Error(w, http.StatusBadRequest, err.Error())
 		return
@@ -129,7 +129,7 @@ func (h *OrderHandler) GetAllOrders(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *OrderHandler) GetOrderById(w http.ResponseWriter, r *http.Request) {
-	id, err := request.GetStringParam(r, "id")
+	id, err := request.GetStringParam(r, "id", true)
 	if err != nil {
 		response.Error(w, http.StatusBadRequest, err.Error())
 		return

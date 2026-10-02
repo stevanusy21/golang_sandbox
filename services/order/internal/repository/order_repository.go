@@ -56,7 +56,7 @@ func (r *OrderRepository) UpdateStatus(orderId string, status domain.OrderStatus
 	query := `
 		UPDATE orders 
 		SET status = $1, updated_at = CURRENT_TIMESTAMP 
-		WHERE id = $2`
+		WHERE id = $2 AND deleted_at IS NULL`
 
 	result, err := r.db.Exec(query, status, orderId)
 	if err != nil {
@@ -108,6 +108,8 @@ func (r *OrderRepository) GetAllOrders(filter domain.OrderFilter) ([]domain.Orde
 	if len(filter.Status) > 0 {
 		qb.WhereAny("AND", "status", filter.Status)
 	}
+
+	qb.WhereNull("AND", "deleted_at")
 
 	qb.OrderBy(filter.SortBy, filter.SortDir)
 	qb.LimitOffset(filter.Limit, filter.Offset)
@@ -164,7 +166,7 @@ func (r *OrderRepository) GetOrderById(id string) (domain.Order, error) {
 			updated_at,
 			deleted_at
 		FROM orders 
-		WHERE id = $1
+		WHERE id = $1 AND deleted_at IS NULL
 	`
 	var order domain.Order
 	err := r.db.QueryRow(query, id).Scan(
