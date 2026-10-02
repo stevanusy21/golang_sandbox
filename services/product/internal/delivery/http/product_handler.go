@@ -3,6 +3,7 @@ package http
 import (
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/stevanusy21/golang_sandbox/pkg/request"
@@ -96,7 +97,8 @@ func (h *ProductHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.productUsecase.CreateProduct(&payload); err != nil {
+	productId, err := h.productUsecase.CreateProduct(&payload)
+	if err != nil {
 		switch {
 		case errors.Is(err, utils.ErrProductCreationFailed):
 			response.Error(w, http.StatusInternalServerError, err.Error())
@@ -106,7 +108,10 @@ func (h *ProductHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.JSON(w, http.StatusCreated, map[string]string{"message": "Produk berhasil dibuat"})
+	response.JSON(w, http.StatusCreated, map[string]string{
+		"message":   "Produk berhasil dibuat",
+		"productId": strconv.Itoa(productId),
+	})
 }
 
 func (h *ProductHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {

@@ -2,11 +2,14 @@ package repository
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/stevanusy21/golang_sandbox/pkg/utils"
 	"github.com/stevanusy21/golang_sandbox/services/payment/internal/domain"
 )
+
+const LogLocation = "Payment Repository"
 
 type PaymentRepository struct {
 	db *sql.DB
@@ -17,12 +20,19 @@ func NewPaymentRepository(db *sql.DB) *PaymentRepository {
 }
 
 func (r *PaymentRepository) SavePayment(p *domain.PaymentRecord) error {
-	query := `INSERT INTO payment_records (order_id, amount, payment_method, status, transaction_id) 
-		VALUES ($1, $2, $3, $4, $5)`
+	query := `
+		INSERT INTO payment_records (order_id, amount, payment_method, status, transaction_id) 
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING id
+	`
 
-	_, err := r.db.Exec(query, p.OrderId, p.Amount, p.PaymentMethod, p.Status, p.TransactionId)
+	err := r.db.QueryRow(query, p.OrderId, p.Amount, p.PaymentMethod, p.Status, p.TransactionId).Scan(&p.Id)
+	if err != nil {
+		utils.LogError(LogLocation, utils.ErrPaymentSaveFailed.Error(), err)
+		return fmt.Errorf("%w: %v", utils.ErrPaymentSaveFailed, err)
+	}
 
-	return err
+	return nil
 }
 
 func (r *PaymentRepository) UpdatePayment(p *domain.PaymentRecord) error {
@@ -34,6 +44,7 @@ func (r *PaymentRepository) UpdatePayment(p *domain.PaymentRecord) error {
 
 	_, err := r.db.Exec(query, p.Status, p.TransactionId, p.OrderId)
 	if err != nil {
+		utils.LogError(LogLocation, utils.ErrPaymentUpdateFailed.Error(), err)
 		return fmt.Errorf("%w: %v", utils.ErrPaymentUpdateFailed, err)
 	}
 
@@ -41,8 +52,6 @@ func (r *PaymentRepository) UpdatePayment(p *domain.PaymentRecord) error {
 }
 
 func (r *PaymentRepository) GetPaymentByOrderId(orderId string) (*domain.PaymentRecord, error) {
-	var record domain.PaymentRecord
-
 	query := `
 		SELECT 
 			id, 
@@ -57,6 +66,7 @@ func (r *PaymentRepository) GetPaymentByOrderId(orderId string) (*domain.Payment
 		FROM payment_records 
 		WHERE order_id = $1`
 
+	var record domain.PaymentRecord
 	err := r.db.QueryRow(query, orderId).Scan(
 		&record.Id,
 		&record.OrderId,
@@ -68,9 +78,12 @@ func (r *PaymentRepository) GetPaymentByOrderId(orderId string) (*domain.Payment
 		&record.UpdatedAt,
 		&record.DeletedAt,
 	)
-	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("%w: %v", utils.ErrPaymentNotFound, err)
-	} else if err != nil {
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, utils.ErrPaymentNotFound
+		}
+		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
 		return nil, fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
 	}
 

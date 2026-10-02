@@ -44,7 +44,7 @@ func (u *ProductUsecase) GetAllProducts(filter domain.ProductFilter) ([]domain.P
 	return response, nil
 }
 
-func (u *ProductUsecase) CreateProduct(payload *domain.ProductCreateRequest) error {
+func (u *ProductUsecase) CreateProduct(payload *domain.ProductCreateRequest) (int, error) {
 	product := domain.Product{
 		Name:   payload.Name,
 		Price:  payload.Price,
@@ -53,10 +53,10 @@ func (u *ProductUsecase) CreateProduct(payload *domain.ProductCreateRequest) err
 	}
 
 	if err := u.productRepo.CreateProduct(&product); err != nil {
-		return fmt.Errorf("%w: %v", utils.ErrProductCreationFailed, err)
+		return 0, fmt.Errorf("%w: %v", utils.ErrProductCreationFailed, err)
 	}
 
-	return nil
+	return product.ID, nil
 
 }
 

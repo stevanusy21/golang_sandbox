@@ -9,6 +9,8 @@ var (
 	ErrQueryFailed         = errors.New("Gagal melakukan query")
 	ErrScanFailed          = errors.New("Gagal memproses data dari query database")
 	ErrGetDataFailed       = errors.New("Gagal mendapatkan data")
+	ErrFailedToMarshal     = errors.New("Gagal melakukan marshalling")
+	ErrFailedToUnmarshal     = errors.New("Gagal melakukan unmarshalling")
 
 	//Token
 	ErrTokenMissing       = errors.New("Token tidak ditemukan")

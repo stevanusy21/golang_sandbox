@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -13,6 +14,8 @@ import (
 	"github.com/stevanusy21/golang_sandbox/services/payment/internal/gateway"
 	"github.com/stevanusy21/golang_sandbox/services/payment/internal/repository"
 )
+
+const LogLocation = "Payment Usecase"
 
 type PaymentUsecase struct {
 	repo    *repository.PaymentRepository
@@ -38,16 +41,16 @@ func (u *PaymentUsecase) ProcessPayment(orderId string, amount float64, paymentM
 	}
 
 	if err := u.repo.SavePayment(record); err != nil {
-		return nil, fmt.Errorf("Gagal menyimpan data pembayaran: %v", err)
+		return nil, fmt.Errorf("%w: %v", utils.ErrPaymentProcessFailed, err)
 	}
 
 	result, err := u.gateway.Charge(orderId, amount, coreapi.CoreapiPaymentType(paymentMethod))
 	if err != nil {
 		record.Status = "FAILED"
-		if saveErr := u.repo.SavePayment(record); saveErr != nil {
-			utils.LogError("Payment Usecase", "Gagal menyimpan record pembayaran yang gagal", saveErr)
+		if saveErr := u.repo.UpdatePayment(record); saveErr != nil {
+			return nil, fmt.Errorf("%w: %v", utils.ErrPaymentProcessFailed, saveErr)
 		}
-		return nil, fmt.Errorf("Gagal memproses pembayaran: %v", err)
+		return nil, fmt.Errorf("%w: %v", utils.ErrPaymentProcessFailed, err)
 	}
 
 	transactionId := result.TransactionId
@@ -55,7 +58,7 @@ func (u *PaymentUsecase) ProcessPayment(orderId string, amount float64, paymentM
 	record.Status = strings.ToUpper(result.Status)
 
 	if err := u.repo.UpdatePayment(record); err != nil {
-		return nil, fmt.Errorf("Gagal menyimpan data pembayaran: %v", err)
+		return nil, fmt.Errorf("%w: %v", utils.ErrPaymentProcessFailed, err)
 	}
 
 	return record, nil
@@ -64,19 +67,20 @@ func (u *PaymentUsecase) ProcessPayment(orderId string, amount float64, paymentM
 func (u *PaymentUsecase) HandlePaymentStatusCallback(callback domain.MidtransCallbackDTO) error {
 	record, err := u.repo.GetPaymentByOrderId(callback.OrderID)
 	if err != nil {
-		utils.LogWarn("Payment Service", "Callback diterima untuk order yang tidak ditemukan: "+callback.OrderID)
-		return nil
+		if errors.Is(err, utils.ErrPaymentNotFound) {
+			utils.LogWarn(LogLocation, "Callback diterima untuk order yang tidak ditemukan: "+callback.OrderID)
+			return nil
+		}
+		return fmt.Errorf("%w: %v", utils.ErrPaymentCallbackFailed, err)
 	}
 
 	record.Status = strings.ToUpper(callback.TransactionStatus)
 	if err := u.repo.UpdatePayment(record); err != nil {
-		utils.LogError("Payment Service", "Gagal menyimpan record pembayaran", err)
-		return err
+		return fmt.Errorf("%w: %v", utils.ErrPaymentCallbackFailed, err)
 	}
 
 	if record.Status != "PENDING" {
 		if err := u.PublishPaymentUpdatedEvent(record.OrderId, record.Status); err != nil {
-			utils.LogError("Payment Service", "Gagal publish event", err)
 			return err
 		}
 	}
@@ -91,7 +95,8 @@ func (u *PaymentUsecase) PublishPaymentUpdatedEvent(orderId string, status strin
 
 	body, err := json.Marshal(event)
 	if err != nil {
-		return err
+		utils.LogError(LogLocation, utils.ErrFailedToMarshal.Error(), err)
+		return fmt.Errorf("%w: %v", utils.ErrPaymentPublishEventFailed, err)
 	}
 
 	err = u.rabbit.Channel.Publish(
@@ -105,10 +110,10 @@ func (u *PaymentUsecase) PublishPaymentUpdatedEvent(orderId string, status strin
 		},
 	)
 	if err != nil {
-		utils.LogErrorNoValue("Payment Service", "Gagal publish event ke RabbitMQ")
-		return err
+		utils.LogErrorNoValue(LogLocation, utils.ErrPaymentPublishEventFailed.Error())
+		return fmt.Errorf("%w: %v", utils.ErrPaymentPublishEventFailed, err)
 	}
 
-	utils.LogInfo("Payment Service", "Berhasil publish event payment.updated ke RabbitMQ untuk Order ID: "+orderId)
+	utils.LogInfo(LogLocation, "Berhasil publish event payment.updated ke RabbitMQ untuk Order ID: "+orderId)
 	return nil
 }
