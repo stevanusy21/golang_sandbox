@@ -69,7 +69,7 @@ func (r *UserRepository) ChangePasswordUser(id int, password string) error {
 	return nil
 }
 
-func (r *UserRepository) ChangeStatusUser(id int, status domain.UserStatus) (bool, error) {
+func (r *UserRepository) ChangeStatusUser(id int, status domain.UserStatus) error {
 	query := `
 		UPDATE users 
 		SET status = $1, 
@@ -80,16 +80,20 @@ func (r *UserRepository) ChangeStatusUser(id int, status domain.UserStatus) (boo
 	result, err := r.db.Exec(query, status, id)
 	if err != nil {
 		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
-		return false, fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
+		return fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
-		return false, fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
+		return fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
 	}
 
-	return rowsAffected > 0, nil
+	if rowsAffected == 0 {
+		return utils.ErrUserNotFound
+	}
+
+	return nil
 }
 
 func (r *UserRepository) GetUserBy(column string, value any) (domain.User, error) {

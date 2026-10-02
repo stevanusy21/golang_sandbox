@@ -156,7 +156,7 @@ func (h *UserHandler) GetUserById(w http.ResponseWriter, r *http.Request) {
 	user, err := h.userUsecase.GetUserById(id)
 	if err != nil {
 		switch {
-		case errors.Is(err, utils.ErrUserGetFailed):
+		case errors.Is(err, utils.ErrGetDataFailed):
 			response.Error(w, http.StatusNotFound, err.Error())
 		default:
 			response.Error(w, http.StatusInternalServerError, "Terjadi kesalahan internal pada server")

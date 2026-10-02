@@ -34,6 +34,8 @@ func (h *ProductHandler) GetProductByID(w http.ResponseWriter, r *http.Request) 
 		switch {
 		case errors.Is(err, utils.ErrProductNotFound):
 			response.Error(w, http.StatusNotFound, err.Error())
+		case errors.Is(err, utils.ErrGetDataFailed):
+			response.Error(w, http.StatusInternalServerError, err.Error())
 		default:
 			response.Error(w, http.StatusInternalServerError, "Terjadi kesalahan internal pada server")
 		}
@@ -76,7 +78,7 @@ func (h *ProductHandler) GetAllProducts(w http.ResponseWriter, r *http.Request) 
 	products, err := h.productUsecase.GetAllProducts(filter)
 	if err != nil {
 		switch {
-		case errors.Is(err, utils.ErrQueryFailed):
+		case errors.Is(err, utils.ErrGetDataFailed):
 			response.Error(w, http.StatusInternalServerError, err.Error())
 		default:
 			response.Error(w, http.StatusInternalServerError, "Terjadi kesalahan internal pada server")
@@ -122,8 +124,6 @@ func (h *ProductHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 
 	if err = h.productUsecase.UpdateProduct(id, &payload); err != nil {
 		switch {
-		case errors.Is(err, utils.ErrProductNotFound):
-			response.Error(w, http.StatusNotFound, err.Error())
 		case errors.Is(err, utils.ErrProductUpdateFailed):
 			response.Error(w, http.StatusInternalServerError, err.Error())
 		default:
@@ -144,8 +144,6 @@ func (h *ProductHandler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
 
 	if err = h.productUsecase.DeleteProduct(id); err != nil {
 		switch {
-		case errors.Is(err, utils.ErrProductNotFound):
-			response.Error(w, http.StatusNotFound, err.Error())
 		case errors.Is(err, utils.ErrProductDeleteFailed):
 			response.Error(w, http.StatusInternalServerError, err.Error())
 		default:

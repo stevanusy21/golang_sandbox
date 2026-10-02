@@ -2,11 +2,14 @@ package repository
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/stevanusy21/golang_sandbox/pkg/utils"
 	"github.com/stevanusy21/golang_sandbox/services/product/internal/domain"
 )
+
+const LogLocation = "Product Repository"
 
 type ProductRepository struct {
 	db *sql.DB
@@ -17,8 +20,6 @@ func NewProductRepository(db *sql.DB) *ProductRepository {
 }
 
 func (r *ProductRepository) GetProductById(id int) (domain.Product, error) {
-	var p domain.Product
-
 	query := `
 		SELECT 
 			id, 
@@ -33,6 +34,7 @@ func (r *ProductRepository) GetProductById(id int) (domain.Product, error) {
 		WHERE id = $1
 	`
 
+	var p domain.Product
 	err := r.db.QueryRow(query, id).Scan(
 		&p.ID,
 		&p.Name,
@@ -44,7 +46,15 @@ func (r *ProductRepository) GetProductById(id int) (domain.Product, error) {
 		&p.DeletedAt,
 	)
 
-	return p, err
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return domain.Product{}, utils.ErrProductNotFound
+		}
+		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
+		return domain.Product{}, fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
+	}
+
+	return p, nil
 }
 
 func (r *ProductRepository) GetAllProducts(filter domain.ProductFilter) ([]domain.Product, error) {
@@ -85,7 +95,8 @@ func (r *ProductRepository) GetAllProducts(filter domain.ProductFilter) ([]domai
 
 	rows, err := r.db.Query(query, args...)
 	if err != nil {
-		return nil, err
+		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
+		return nil, fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
 	}
 
 	defer rows.Close()
@@ -104,6 +115,7 @@ func (r *ProductRepository) GetAllProducts(filter domain.ProductFilter) ([]domai
 			&p.UpdatedAt,
 			&p.DeletedAt,
 		); err != nil {
+			utils.LogError(LogLocation, utils.ErrScanFailed.Error(), err)
 			return nil, fmt.Errorf("%w: %v", utils.ErrScanFailed, err)
 		}
 
@@ -111,21 +123,27 @@ func (r *ProductRepository) GetAllProducts(filter domain.ProductFilter) ([]domai
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, err
+		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
+		return nil, fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
 	}
 
-	return products, err
+	return products, nil
 }
 
 func (r *ProductRepository) CreateProduct(p *domain.Product) error {
 	query := `
 		INSERT INTO products (name, price, stock, status)
 		VALUES ($1, $2, $3, $4)
+		RETURNING id
 	`
 
-	_, err := r.db.Exec(query, p.Name, p.Price, p.Stock, p.Status)
+	err := r.db.QueryRow(query, p.Name, p.Price, p.Stock, p.Status).Scan(&p.ID)
+	if err != nil {
+		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
+		return fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
+	}
 
-	return err
+	return nil
 }
 
 func (r *ProductRepository) UpdateProduct(id int, p *domain.ProductUpdateRequest) error {
@@ -140,9 +158,23 @@ func (r *ProductRepository) UpdateProduct(id int, p *domain.ProductUpdateRequest
 		WHERE id = $5 AND deleted_at IS NULL
 	`
 
-	_, err := r.db.Exec(query, p.Name, p.Price, p.Stock, p.Status, id)
+	result, err := r.db.Exec(query, p.Name, p.Price, p.Stock, p.Status, id)
+	if err != nil {
+		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
+		return fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
+	}
 
-	return err
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
+		return fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
+	}
+
+	if rowsAffected == 0 {
+		return utils.ErrProductNotFound
+	}
+
+	return nil
 }
 
 func (r *ProductRepository) DeleteProduct(id int) error {
@@ -151,9 +183,23 @@ func (r *ProductRepository) DeleteProduct(id int) error {
 		SET deleted_at = CURRENT_TIMESTAMP 
 		WHERE id = $1 AND deleted_at IS NULL
 	`
-	_, err := r.db.Exec(query, id)
+	result, err := r.db.Exec(query, id)
+	if err != nil {
+		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
+		return fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
+	}
 
-	return err
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
+		return fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
+	}
+
+	if rowsAffected == 0 {
+		return utils.ErrProductNotFound
+	}
+
+	return nil
 }
 
 func (r *ProductRepository) DeductStock(id int, quantity int) error {
@@ -165,16 +211,45 @@ func (r *ProductRepository) DeductStock(id int, quantity int) error {
 
 	result, err := r.db.Exec(query, quantity, id)
 	if err != nil {
+		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
 		return fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
+		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
 		return fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
 	}
 
 	if rowsAffected == 0 {
-		return utils.ErrProductStockNotEnough
+		return utils.ErrProductNotFound
+	}
+
+	return nil
+}
+
+//NotUsedYet
+func (r *ProductRepository) AddStock(id int, quantity int) error {
+	query := `
+		UPDATE products 
+		SET stock = stock + $1, updated_at = CURRENT_TIMESTAMP 
+		WHERE id = $2 AND deleted_at IS NULL
+	`
+
+	result, err := r.db.Exec(query, quantity, id)
+	if err != nil {
+		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
+		return fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
+		return fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
+	}
+
+	if rowsAffected == 0 {
+		return utils.ErrProductNotFound
 	}
 
 	return nil

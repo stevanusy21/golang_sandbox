@@ -99,14 +99,8 @@ func (u *UserUsecase) ChangePasswordUser(id int, payload *domain.UserChangePassw
 }
 
 func (u *UserUsecase) ChangeStatusUser(id int, payload *domain.UserChangeStatusRequest) error {
-	found, err := u.repo.ChangeStatusUser(id, payload.Status)
-
-	if err != nil {
+	if err := u.repo.ChangeStatusUser(id, payload.Status); err != nil {
 		return fmt.Errorf("%w: %v", utils.ErrUserChangeStatusFailed, err)
-	}
-
-	if !found {
-		return utils.ErrUserNotFound
 	}
 
 	return nil
@@ -115,7 +109,7 @@ func (u *UserUsecase) ChangeStatusUser(id int, payload *domain.UserChangeStatusR
 func (u *UserUsecase) GetUserById(id int) (domain.UserDetailResponse, error) {
 	user, err := u.repo.GetUserBy("id", id)
 	if err != nil {
-		return domain.UserDetailResponse{}, fmt.Errorf("%w: %v", utils.ErrUserGetFailed, err)
+		return domain.UserDetailResponse{}, fmt.Errorf("%w: %v", utils.ErrGetDataFailed, err)
 	}
 
 	return user.ToUserDetailResponse(), nil
