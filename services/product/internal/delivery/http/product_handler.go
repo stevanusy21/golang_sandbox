@@ -8,6 +8,7 @@ import (
 
 	"github.com/stevanusy21/golang_sandbox/pkg/request"
 	"github.com/stevanusy21/golang_sandbox/pkg/response"
+	"github.com/stevanusy21/golang_sandbox/pkg/router"
 	"github.com/stevanusy21/golang_sandbox/pkg/utils"
 	"github.com/stevanusy21/golang_sandbox/services/product/internal/domain"
 	"github.com/stevanusy21/golang_sandbox/services/product/internal/usecase"
@@ -21,6 +22,16 @@ func NewProductHandler(productUsecase *usecase.ProductUsecase) *ProductHandler {
 	return &ProductHandler{
 		productUsecase: productUsecase,
 	}
+}
+
+func (h *ProductHandler) RegisterRoutes(mux *http.ServeMux) {
+	r := router.NewRouter(mux)
+
+	r.Protected("GET /products", h.GetAllProducts)
+	r.Protected("GET /products/{id}", h.GetProductByID)
+	r.Protected("POST /products", h.CreateProduct)
+	r.Protected("PUT /products/{id}", h.UpdateProduct)
+	r.Protected("DELETE /products/{id}", h.DeleteProduct)
 }
 
 func (h *ProductHandler) GetProductByID(w http.ResponseWriter, r *http.Request) {

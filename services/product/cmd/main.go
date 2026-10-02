@@ -18,39 +18,42 @@ import (
 	"google.golang.org/grpc"
 )
 
+const LogLocation = "Product Service Main"
+
 func main() {
+	//Setup Env
 	err := godotenv.Load("services/product/.env")
 	if err != nil {
-		utils.LogErrorNoValue("Product Service", "File .env tidak ditemukan, menggunakan environment variables sistem")
+		utils.LogErrorNoValue(LogLocation, "File .env tidak ditemukan, menggunakan environment variables sistem")
 	}
 
+	//Setup DB
 	db, err := config.ConnectDB("pgx", os.Getenv("DB_DSN"))
 	if err != nil {
-		utils.LogFatal("Product Service", "Gagal konek ke Database", err)
+		utils.LogFatal(LogLocation, "Gagal konek ke Database", err)
 	}
 	defer db.Close()
 
+	//Setup Repo, Usecase, Handler
 	productRepo := repository.NewProductRepository(db)
 	productUseCase := usecase.NewProductUsecase(productRepo)
 	productHandler := deliveryHttp.NewProductHandler(productUseCase)
 
+	//Setup Router
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /products", productHandler.GetAllProducts)
-	mux.HandleFunc("GET /products/{id}", productHandler.GetProductByID)
-	mux.HandleFunc("POST /products", productHandler.CreateProduct)
-	mux.HandleFunc("PUT /products/{id}", productHandler.UpdateProduct)
-	mux.HandleFunc("DELETE /products/{id}", productHandler.DeleteProduct)
+	productHandler.RegisterRoutes(mux)
 
-	port := fmt.Sprintf(":%s", os.Getenv("APP_PORT"))
-
+	//Run Server HTTP
 	go func() {
-		utils.LogInfo("Product Service", "Product Service (HTTP) berjalan di port "+port)
+		port := fmt.Sprintf(":%s", os.Getenv("APP_PORT"))
+		utils.LogInfo(LogLocation, "Product Service (HTTP) berjalan di port "+port)
 
 		if err := http.ListenAndServe(port, mux); err != nil {
-			utils.LogFatal("Product Service", "Server gagal berjalan", err)
+			utils.LogFatal(LogLocation, "Server gagal berjalan", err)
 		}
 	}()
 
+	//Run Server GRPC
 	productHandlerGrpc := deliveryGrpc.NewProductHandlerGrpc(productUseCase)
 	grpcServer := grpc.NewServer()
 	product.RegisterProductServiceServer(grpcServer, productHandlerGrpc)
@@ -58,12 +61,12 @@ func main() {
 	grpcPort := fmt.Sprintf(":%s", os.Getenv("GRPC_PORT"))
 	listener, err := net.Listen("tcp", grpcPort)
 	if err != nil {
-		utils.LogFatal("Product Service", "Gagal membuka port", err)
+		utils.LogFatal(LogLocation, "Gagal membuka port", err)
 	}
 
-	utils.LogInfo("Product Service", "Product Service (gRPC) berjalan di port "+grpcPort)
+	utils.LogInfo(LogLocation, "Product Service (gRPC) berjalan di port "+grpcPort)
 	if err := grpcServer.Serve(listener); err != nil {
-		utils.LogFatal("Product Service", "Server GRPC gagal berjalan", err)
+		utils.LogFatal(LogLocation, "Server GRPC gagal berjalan", err)
 	}
 
 }

@@ -19,44 +19,50 @@ import (
 	"google.golang.org/grpc"
 )
 
-const ServiceName = "Payment Service"
+const LogLocation = "Payment Service Main"
 
 func main() {
+	//Setup Env
 	err := godotenv.Load("services/payment/.env")
 	if err != nil {
-		utils.LogErrorNoValue(ServiceName, "File .env tidak ditemukan, menggunakan environment variables sistem")
+		utils.LogErrorNoValue(LogLocation, "File .env tidak ditemukan, menggunakan environment variables sistem")
 	}
 
+	//Setup DB
 	db, err := config.ConnectDB("pgx", os.Getenv("DB_DSN"))
 	if err != nil {
-		utils.LogFatal(ServiceName, "Gagal terhubung ke database", err)
+		utils.LogFatal(LogLocation, "Gagal terhubung ke database", err)
 	}
 	defer db.Close()
 
+	//Setup RabbitMQ
 	rabbit := setupRabbitMqConnection()
 	defer rabbit.Close()
 
+	//Setup Midtrans 
 	serverKey := os.Getenv("MIDTRANS_SERVER_KEY")
 	isProduction := os.Getenv("MIDTRANS_PRODUCTION") == "true"
-
 	midtransGateway := gateway.NewMidtransGateway(serverKey, isProduction)
 
+	//Setup Repo, Usecase, Handler
 	paymentRepo := repository.NewPaymentRepository(db)
 	paymentUsecase := usecase.NewPaymentUsecase(paymentRepo, midtransGateway, rabbit)
 	paymentHandler := deliveryHttp.NewPaymentHandler(paymentUsecase)
 
+	//Run Server HTTP
 	go func() {
 		mux := http.NewServeMux()
 		mux.HandleFunc("POST /callback/midtrans", paymentHandler.HandlePaymentStatusCallback)
 
 		httpPort := fmt.Sprintf(":%s", os.Getenv("APP_PORT"))
 
-		utils.LogInfo(ServiceName, ServiceName+" (HTTP) sedang berjalan di port "+httpPort)
+		utils.LogInfo(LogLocation, LogLocation+" (HTTP) sedang berjalan di port "+httpPort)
 		if err := http.ListenAndServe(httpPort, mux); err != nil {
-			utils.LogFatal(ServiceName, "Gagal menjalankan server HTTP", err)
+			utils.LogFatal(LogLocation, "Gagal menjalankan server HTTP", err)
 		}
 	}()
 
+	//Run Server GRPC
 	paymentHandlerGrpc := deliveryGrpc.NewPaymentHandler(paymentUsecase)
 	grpcServer := grpc.NewServer()
 	payment.RegisterPaymentServiceServer(grpcServer, paymentHandlerGrpc)
@@ -64,19 +70,19 @@ func main() {
 	grpcPort := fmt.Sprintf(":%s", os.Getenv("GRPC_PORT"))
 	listener, err := net.Listen("tcp", grpcPort)
 	if err != nil {
-		utils.LogFatal(ServiceName, "Gagal membuka port gRPC", err)
+		utils.LogFatal(LogLocation, "Gagal membuka port gRPC", err)
 	}
 
-	utils.LogInfo(ServiceName, ServiceName+" (gRPC) sedang berjalan di port "+grpcPort)
+	utils.LogInfo(LogLocation, "Payment Service (gRPC) sedang berjalan di port "+grpcPort)
 	if err := grpcServer.Serve(listener); err != nil {
-		utils.LogFatal(ServiceName, "Gagal menjalankan server gRPC", err)
+		utils.LogFatal(LogLocation, "Gagal menjalankan server gRPC", err)
 	}
 }
 
 func setupRabbitMqConnection() *config.RabbitMQ {
-	rabbit, err := config.ConnectRabbitMQ(ServiceName, os.Getenv("RABBITMQ_URL"))
+	rabbit, err := config.ConnectRabbitMQ(LogLocation, os.Getenv("RABBITMQ_URL"))
 	if err != nil {
-		utils.LogFatal(ServiceName, "Gagal terhubung ke RabbitMQ", err)
+		utils.LogFatal(LogLocation, "Gagal terhubung ke RabbitMQ", err)
 	}
 
 	if err = rabbit.Channel.ExchangeDeclare(
@@ -88,7 +94,7 @@ func setupRabbitMqConnection() *config.RabbitMQ {
 		false,
 		nil,
 	); err != nil {
-		utils.LogFatal(ServiceName, "Gagal mendeklarasikan exchange", err)
+		utils.LogFatal(LogLocation, "Gagal mendeklarasikan exchange", err)
 	}
 
 	return rabbit

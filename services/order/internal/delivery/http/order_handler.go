@@ -7,6 +7,7 @@ import (
 
 	"github.com/stevanusy21/golang_sandbox/pkg/request"
 	"github.com/stevanusy21/golang_sandbox/pkg/response"
+	"github.com/stevanusy21/golang_sandbox/pkg/router"
 	"github.com/stevanusy21/golang_sandbox/pkg/utils"
 	"github.com/stevanusy21/golang_sandbox/services/order/internal/domain"
 	"github.com/stevanusy21/golang_sandbox/services/order/internal/usecase"
@@ -20,6 +21,14 @@ func NewOrderHandler(u *usecase.OrderUsecase) *OrderHandler {
 	return &OrderHandler{
 		orderUsecase: u,
 	}
+}
+
+func (h *OrderHandler) RegisterRoutes(mux *http.ServeMux) {
+	r := router.NewRouter(mux)
+
+	r.Protected("POST /checkout", h.Checkout)
+	r.Protected("GET /orders", h.GetAllOrders)
+	r.Protected("GET /orders/{id}", h.GetOrderById)
 }
 
 func (h *OrderHandler) Checkout(w http.ResponseWriter, r *http.Request) {

@@ -21,18 +21,20 @@ import (
 const LogLocation = "Order Service Main"
 
 func main() {
+	//Setup Env
 	err := godotenv.Load("services/order/.env")
 	if err != nil {
 		utils.LogErrorNoValue(LogLocation, "File .env tidak ditemukan, menggunakan environment variables sistem")
 	}
 
+	//Setup DB
 	db, err := config.ConnectDB("pgx", os.Getenv("DB_DSN"))
 	if err != nil {
 		utils.LogFatal(LogLocation, "Gagal konek ke Database", err)
 	}
 	defer db.Close()
 
-	// Koneksi ke Payment Service
+	// Setup koneksi Payment Service
 	grpcConnPayment, err := config.ConnectGrpc(LogLocation, os.Getenv("GRPC_PAYMENT_ADDRESS"))
 	if err != nil {
 		utils.LogFatal(LogLocation, "Gagal konek ke Payment Service", err)
@@ -41,7 +43,7 @@ func main() {
 
 	paymentClient := payment.NewPaymentServiceClient(grpcConnPayment)
 
-	// Koneksi ke Product Service
+	//Setup koneksi Product Service
 	grpcConnProduct, err := config.ConnectGrpc(LogLocation, os.Getenv("GRPC_PRODUCT_ADDRESS"))
 	if err != nil {
 		utils.LogFatal(LogLocation, "Gagal konek ke Product Service", err)
@@ -50,26 +52,28 @@ func main() {
 
 	productClient := product.NewProductServiceClient(grpcConnProduct)
 
+	//Setup Repo, Usecase, Handler
 	orderRepo := repository.NewOrderRepository(db)
 	orderUsecase := usecase.NewOrderUsecase(orderRepo, paymentClient, productClient)
 	orderHandler := deliveryHttp.NewOrderHandler(orderUsecase)
 
+	//Setup Router
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /checkout", orderHandler.Checkout)
-	mux.HandleFunc("GET /orders", orderHandler.GetAllOrders)
-	mux.HandleFunc("GET /orders/{id}", orderHandler.GetOrderById)
+	orderHandler.RegisterRoutes(mux)
 
-	// Koneksi ke Rabbit MQ
+	//Setup Rabbit MQ
 	rabbit := setupRabbitMqConnection()
 	defer rabbit.Close()
 
+	//Run Consumer RabbitMq 
 	go startPaymentStatusConsumer(rabbit.Channel, orderUsecase)
 
+	//Run Server HTTP
 	port := fmt.Sprintf(":%s", os.Getenv("APP_PORT"))
-	utils.LogInfo("Order Service", "Order Service (HTTP) berjalan di port "+port)
+	utils.LogInfo(LogLocation, "Order Service (HTTP) berjalan di port "+port)
 
 	if err := http.ListenAndServe(port, mux); err != nil {
-		utils.LogFatal("Order Service", "Server gagal berjalan", err)
+		utils.LogFatal(LogLocation, "Server gagal berjalan", err)
 	}
 }
 
