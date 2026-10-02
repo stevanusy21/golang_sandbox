@@ -1,13 +1,14 @@
 package token
 
 import (
-	"fmt"
 	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stevanusy21/golang_sandbox/pkg/utils"
 )
+
+const LogLocation = "Token"
 
 type Claims struct {
 	UserId int    `json:"user_id"`
@@ -18,6 +19,7 @@ type Claims struct {
 func GenerateToken(userId int, email string) (string, error) {
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
+		utils.LogErrorNoValue(LogLocation, utils.ErrJwtSecretMissing.Error())
 		return "", utils.ErrJwtSecretMissing
 	}
 
@@ -30,12 +32,19 @@ func GenerateToken(userId int, email string) (string, error) {
 		},
 	}
 
-	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(secret))
+	tokenString, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(secret))
+	if err != nil {
+		utils.LogError(LogLocation, utils.ErrTokenCreatedFailed.Error(), err)
+		return "", err
+	}
+
+	return tokenString, nil
 }
 
 func ValidateToken(tokenString string) (*Claims, error) {
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
+		utils.LogErrorNoValue(LogLocation, utils.ErrJwtSecretMissing.Error())
 		return nil, utils.ErrJwtSecretMissing
 	}
 
@@ -44,7 +53,8 @@ func ValidateToken(tokenString string) (*Claims, error) {
 	})
 
 	if err != nil {
-		return nil, fmt.Errorf("%w: %v", utils.ErrTokenParseFailed, err)
+		utils.LogError(LogLocation, utils.ErrTokenParseFailed.Error(), err)
+		return nil, err
 	}
 
 	claims, ok := token.Claims.(*Claims)

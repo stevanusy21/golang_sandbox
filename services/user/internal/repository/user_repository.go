@@ -28,6 +28,7 @@ func (r *UserRepository) CreateUser(u *domain.User) error {
 
 	err := r.db.QueryRow(query, u.Username, u.Email, u.Password, u.Status).Scan(&u.ID)
 	if err != nil {
+		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
 		return fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
 	}
 
@@ -45,6 +46,7 @@ func (r *UserRepository) UpdateUser(id int, u *domain.User) error {
 
 	//Tidak return rows affected karena user sudah di get sebelumnya
 	if _, err := r.db.Exec(query, u.Username, u.Email, id); err != nil {
+		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
 		return fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
 	}
 
@@ -60,6 +62,7 @@ func (r *UserRepository) ChangePasswordUser(id int, password string) error {
 	`
 	//Tidak return rows affected karena user sudah di get sebelumnya
 	if _, err := r.db.Exec(query, password, id); err != nil {
+		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
 		return fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
 	}
 
@@ -76,11 +79,13 @@ func (r *UserRepository) ChangeStatusUser(id int, status domain.UserStatus) (boo
 
 	result, err := r.db.Exec(query, status, id)
 	if err != nil {
+		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
 		return false, fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
+		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
 		return false, fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
 	}
 
@@ -119,6 +124,7 @@ func (r *UserRepository) GetUserBy(column string, value any) (domain.User, error
 		if errors.Is(err, sql.ErrNoRows) {
 			return domain.User{}, utils.ErrUserNotFound
 		}
+		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
 		return domain.User{}, fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
 	}
 
@@ -144,6 +150,7 @@ func (r *UserRepository) CheckExistsBy(column string, value any, excludeId *int)
 	var exists bool
 
 	if err := r.db.QueryRow(query, args...).Scan(&exists); err != nil {
+		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
 		return false, fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
 	}
 
