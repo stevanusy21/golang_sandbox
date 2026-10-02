@@ -34,8 +34,8 @@ func GenerateToken(userId int, email string) (string, error) {
 
 	tokenString, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(secret))
 	if err != nil {
-		utils.LogError(LogLocation, utils.ErrTokenCreatedFailed.Error(), err)
-		return "", err
+		utils.LogError(LogLocation, utils.ErrTokenCreationFailed.Error(), err)
+		return "", utils.ErrTokenCreationFailed
 	}
 
 	return tokenString, nil

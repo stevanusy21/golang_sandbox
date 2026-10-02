@@ -1,8 +1,6 @@
 package usecase
 
 import (
-	"fmt"
-
 	"github.com/stevanusy21/golang_sandbox/pkg/token"
 	"github.com/stevanusy21/golang_sandbox/pkg/utils"
 	"github.com/stevanusy21/golang_sandbox/services/user/internal/domain"
@@ -41,7 +39,7 @@ func (u *UserUsecase) CreateUser(payload *domain.UserCreateRequest) (int, error)
 	}
 
 	if err := u.repo.CreateUser(&user); err != nil {
-		return 0, fmt.Errorf("%w: %v", utils.ErrUserCreationFailed, err)
+		return 0, err
 	}
 
 	return user.ID, nil
@@ -50,7 +48,7 @@ func (u *UserUsecase) CreateUser(payload *domain.UserCreateRequest) (int, error)
 func (u *UserUsecase) UpdateUser(id int, payload *domain.UserUpdateRequest) error {
 	user, err := u.repo.GetUserBy("id", id)
 	if err != nil {
-		return fmt.Errorf("%w: %v", utils.ErrUserUpdateFailed, err)
+		return err
 	}
 
 	if payload.Username != nil {
@@ -69,47 +67,35 @@ func (u *UserUsecase) UpdateUser(id int, payload *domain.UserUpdateRequest) erro
 		user.Email = *payload.Email
 	}
 
-	if err := u.repo.UpdateUser(id, &user); err != nil {
-		return fmt.Errorf("%w: %v", utils.ErrUserUpdateFailed, err)
-	}
-
-	return nil
+	return u.repo.UpdateUser(id, &user)
 }
 
 func (u *UserUsecase) ChangePasswordUser(id int, payload *domain.UserChangePasswordRequest) error {
 	user, err := u.repo.GetUserBy("id", id)
 	if err != nil {
-		return fmt.Errorf("%w: %v", utils.ErrUserChangePasswordFailed, err)
+		return err
 	}
 
 	if !utils.VerifyPassword(user.Password, payload.OldPassword) {
-		return fmt.Errorf("%w: %v", utils.ErrInvalidRequest, "Password lama tidak sesuai")
+		return utils.ErrWrongEmailPassword
 	}
 
 	hashedPassword, err := utils.HashPassword(payload.NewPassword)
 	if err != nil {
-		return utils.ErrHashPassword
+		return err
 	}
 
-	if err := u.repo.ChangePasswordUser(id, string(hashedPassword)); err != nil {
-		return fmt.Errorf("%w: %v", utils.ErrUserChangePasswordFailed, err)
-	}
-
-	return nil
+	return u.repo.ChangePasswordUser(id, hashedPassword)
 }
 
 func (u *UserUsecase) ChangeStatusUser(id int, payload *domain.UserChangeStatusRequest) error {
-	if err := u.repo.ChangeStatusUser(id, payload.Status); err != nil {
-		return fmt.Errorf("%w: %v", utils.ErrUserChangeStatusFailed, err)
-	}
-
-	return nil
+	return u.repo.ChangeStatusUser(id, payload.Status)
 }
 
 func (u *UserUsecase) GetUserById(id int) (domain.UserDetailResponse, error) {
 	user, err := u.repo.GetUserBy("id", id)
 	if err != nil {
-		return domain.UserDetailResponse{}, fmt.Errorf("%w: %v", utils.ErrGetDataFailed, err)
+		return domain.UserDetailResponse{}, err
 	}
 
 	return user.ToUserDetailResponse(), nil
@@ -118,20 +104,20 @@ func (u *UserUsecase) GetUserById(id int) (domain.UserDetailResponse, error) {
 func (u *UserUsecase) Login(payload *domain.LoginRequest) (domain.LoginResponse, error) {
 	user, err := u.repo.GetUserBy("email", payload.Email)
 	if err != nil {
-		return domain.LoginResponse{}, fmt.Errorf("%w: %v", utils.ErrLoginFailed, "Email atau password tidak sesuai")
+		return domain.LoginResponse{}, err
 	}
 
 	if !utils.VerifyPassword(user.Password, payload.Password) {
-		return domain.LoginResponse{}, fmt.Errorf("%w: %v", utils.ErrLoginFailed, "Email atau password tidak sesuai")
+		return domain.LoginResponse{}, utils.ErrWrongEmailPassword
 	}
 
 	if user.Status != domain.UserActive {
-		return domain.LoginResponse{}, fmt.Errorf("%w: %v", utils.ErrLoginFailed, "Akun tidak aktif")
+		return domain.LoginResponse{}, utils.ErrUserNotActive
 	}
 
 	token, err := token.GenerateToken(user.ID, user.Email)
 	if err != nil {
-		return domain.LoginResponse{}, fmt.Errorf("%w: %v", utils.ErrTokenCreatedFailed, err)
+		return domain.LoginResponse{}, err
 	}
 
 	return domain.LoginResponse{Token: token}, nil

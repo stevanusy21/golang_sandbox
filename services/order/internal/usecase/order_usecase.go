@@ -13,6 +13,7 @@ import (
 )
 
 const LogLocation = "Order Usecase"
+const LogLocationBackground = LogLocation + " (Background)"
 
 type OrderUsecase struct {
 	orderRepo     *repository.OrderRepository
@@ -36,17 +37,17 @@ func (u *OrderUsecase) CreateOrder(payload *domain.OrderCreateRequest) (domain.O
 		ProductId: int32(payload.ProductId),
 	})
 	if err != nil {
-		utils.LogError(LogLocation, "Error get product detail", err)
-		return domain.OrderDetailResponse{}, fmt.Errorf("%w: %v", utils.ErrOrderCreationFailed, err)
+		utils.LogError(LogLocation, utils.ErrGetDataFailed.Error(), err)
+		return domain.OrderDetailResponse{}, utils.ErrGetDataFailed
 	}
 
 	deductRes, err := u.productClient.DeductStock(ctx, &product.DeductStockRequest{
 		ProductId: int32(payload.ProductId),
 		Quantity:  int32(payload.Quantity),
 	})
-
 	if err != nil || !deductRes.IsSuccess {
-		return domain.OrderDetailResponse{}, fmt.Errorf("%w: %v", utils.ErrOrderCreationFailed, err)
+		utils.LogError(LogLocation, utils.ErrDeductStockFailed.Error(), err)
+		return domain.OrderDetailResponse{}, utils.ErrDeductStockFailed
 	}
 
 	order := domain.Order{
@@ -60,7 +61,6 @@ func (u *OrderUsecase) CreateOrder(payload *domain.OrderCreateRequest) (domain.O
 
 	createdOrder, err := u.orderRepo.CreateOrder(&order)
 	if err != nil {
-		fmt.Println("Error di create order")
 		return domain.OrderDetailResponse{}, err
 	}
 
@@ -76,7 +76,7 @@ func (u *OrderUsecase) CreateOrder(payload *domain.OrderCreateRequest) (domain.O
 func (u *OrderUsecase) processPaymentBackground(orderId string, amount float64, paymentMethod domain.PaymentMethod) {
 	defer func() {
 		if err := recover(); err != nil {
-			utils.LogErrorNoValue("Order Background", fmt.Sprintf("Panic recovered in background: %v", err))
+			utils.LogErrorNoValue(LogLocationBackground, fmt.Sprintf("Panic recovered in background: %v", err))
 		}
 	}()
 
@@ -91,12 +91,12 @@ func (u *OrderUsecase) processPaymentBackground(orderId string, amount float64, 
 
 	res, err := u.paymentClient.ProcessPayment(ctx, req)
 	if err != nil || !res.IsSuccess {
-		utils.LogError("Order Background", fmt.Sprintf("Payment FAILED for Order %s", orderId), err)
+		utils.LogError(LogLocationBackground, fmt.Sprintf("%w untuk order ID %s", utils.ErrPaymentProcessFailed, orderId), err)
 		u.orderRepo.UpdateStatus(orderId, domain.OrderFailed)
 		return
 	}
 
-	utils.LogInfo("Order Background", fmt.Sprintf("Payment CREATED for Order %s", orderId))
+	utils.LogInfo(LogLocationBackground, fmt.Sprintf("Payment CREATED untuk order ID %s", orderId))
 }
 
 func (u *OrderUsecase) GetAllOrders(filter domain.OrderFilter) ([]domain.OrderDetailResponse, error) {

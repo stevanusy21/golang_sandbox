@@ -2,7 +2,6 @@ package repository
 
 import (
 	"database/sql"
-	"fmt"
 
 	"github.com/stevanusy21/golang_sandbox/pkg/utils"
 	"github.com/stevanusy21/golang_sandbox/services/order/internal/domain"
@@ -46,20 +45,33 @@ func (r *OrderRepository) CreateOrder(o *domain.Order) (domain.Order, error) {
 		&order.DeletedAt,
 	)
 	if err != nil {
-		utils.LogError(LogLocation, utils.ErrOrderCreationFailed.Error(), err)
-		return order, fmt.Errorf("%w: %v", utils.ErrOrderCreationFailed, err)
+		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
+		return domain.Order{}, utils.ErrQueryFailed
 	}
 
 	return order, nil
 }
 
 func (r *OrderRepository) UpdateStatus(orderId string, status domain.OrderStatus) error {
-	query := `UPDATE orders SET status = $1 WHERE id = $2`
+	query := `
+		UPDATE orders 
+		SET status = $1, updated_at = CURRENT_TIMESTAMP 
+		WHERE id = $2`
 
-	_, err := r.db.Exec(query, status, orderId)
+	result, err := r.db.Exec(query, status, orderId)
 	if err != nil {
-		utils.LogError(LogLocation, utils.ErrOrderUpdateFailed.Error(), err)
-		return fmt.Errorf("%w: %v", utils.ErrOrderUpdateFailed, err)
+		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
+		return utils.ErrQueryFailed
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
+		return utils.ErrQueryFailed
+	}
+
+	if rowsAffected == 0 {
+		return utils.ErrOrderNotFound
 	}
 
 	return nil
@@ -104,7 +116,7 @@ func (r *OrderRepository) GetAllOrders(filter domain.OrderFilter) ([]domain.Orde
 	rows, err := r.db.Query(query, args...)
 	if err != nil {
 		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
-		return nil, fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
+		return nil, utils.ErrQueryFailed
 	}
 
 	defer rows.Close()
@@ -125,7 +137,7 @@ func (r *OrderRepository) GetAllOrders(filter domain.OrderFilter) ([]domain.Orde
 			&order.DeletedAt,
 		); err != nil {
 			utils.LogError(LogLocation, utils.ErrScanFailed.Error(), err)
-			return nil, fmt.Errorf("%w: %v", utils.ErrScanFailed, err)
+			return nil, utils.ErrScanFailed
 		}
 
 		orders = append(orders, order)
@@ -133,7 +145,7 @@ func (r *OrderRepository) GetAllOrders(filter domain.OrderFilter) ([]domain.Orde
 
 	if err := rows.Err(); err != nil {
 		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
-		return nil, fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
+		return nil, utils.ErrQueryFailed
 	}
 
 	return orders, nil
@@ -154,9 +166,7 @@ func (r *OrderRepository) GetOrderById(id string) (domain.Order, error) {
 		FROM orders 
 		WHERE id = $1
 	`
-
 	var order domain.Order
-
 	err := r.db.QueryRow(query, id).Scan(
 		&order.Id,
 		&order.UserId,
@@ -168,15 +178,12 @@ func (r *OrderRepository) GetOrderById(id string) (domain.Order, error) {
 		&order.UpdatedAt,
 		&order.DeletedAt,
 	)
-
 	if err != nil {
 		if err == sql.ErrNoRows {
-			utils.LogErrorNoValue(LogLocation, utils.ErrOrderNotFound.Error())
 			return domain.Order{}, utils.ErrOrderNotFound
 		}
 		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
-		return domain.Order{}, fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
+		return domain.Order{}, utils.ErrQueryFailed
 	}
-
 	return order, nil
 }

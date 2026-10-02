@@ -3,11 +3,13 @@ package http
 import (
 	"crypto/sha512"
 	"encoding/hex"
+	"errors"
 	"net/http"
 	"os"
 
 	"github.com/stevanusy21/golang_sandbox/pkg/request"
 	"github.com/stevanusy21/golang_sandbox/pkg/response"
+	"github.com/stevanusy21/golang_sandbox/pkg/utils"
 	"github.com/stevanusy21/golang_sandbox/services/payment/internal/domain"
 	"github.com/stevanusy21/golang_sandbox/services/payment/internal/usecase"
 )
@@ -29,12 +31,21 @@ func (h *PaymentHandler) HandlePaymentStatusCallback(w http.ResponseWriter, r *h
 
 	serverKey := os.Getenv("MIDTRANS_SERVER_KEY")
 	if !verifySignature(callback, serverKey) {
-		response.Error(w, http.StatusBadRequest, "Invalid signature")
+		response.Error(w, http.StatusBadRequest, utils.ErrInvalidSignature.Error())
 		return
 	}
 
 	if err = h.usecase.HandlePaymentStatusCallback(callback); err != nil {
-		response.Error(w, http.StatusInternalServerError, err.Error())
+		switch {
+		case errors.Is(err, utils.ErrPaymentNotFound):
+			response.Error(w, http.StatusNotFound, err.Error())
+		case errors.Is(err, utils.ErrQueryFailed), 
+			errors.Is(err, utils.ErrFailedToMarshal), 
+			errors.Is(err, utils.ErrPaymentPublishEventFailed):
+			response.Error(w, http.StatusInternalServerError, err.Error())
+		default:
+			response.Error(w, http.StatusInternalServerError, utils.ErrInternalServerError.Error())
+		}
 		return
 	}
 

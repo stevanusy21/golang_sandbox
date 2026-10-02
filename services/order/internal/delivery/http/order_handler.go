@@ -32,13 +32,16 @@ func (h *OrderHandler) Checkout(w http.ResponseWriter, r *http.Request) {
 	orderDetailResponse, err := h.orderUsecase.CreateOrder(&payload)
 	if err != nil {
 		switch {
-		case errors.Is(err, utils.ErrOrderCreationFailed):
-			response.Error(w, http.StatusBadRequest, err.Error())
-			return
-		default:
+		case errors.Is(err, utils.ErrGetDataFailed),
+			errors.Is(err, utils.ErrDeductStockFailed),
+			errors.Is(err, utils.ErrQueryFailed),
+			errors.Is(err, utils.ErrScanFailed),
+			errors.Is(err, utils.ErrPaymentProcessFailed):
 			response.Error(w, http.StatusInternalServerError, err.Error())
-			return
+		default:
+			response.Error(w, http.StatusInternalServerError, utils.ErrInternalServerError.Error())
 		}
+		return
 	}
 
 	response.JSON(w, http.StatusCreated, map[string]interface{}{
@@ -103,7 +106,13 @@ func (h *OrderHandler) GetAllOrders(w http.ResponseWriter, r *http.Request) {
 
 	orders, err := h.orderUsecase.GetAllOrders(filter)
 	if err != nil {
-		response.Error(w, http.StatusInternalServerError, err.Error())
+		switch {
+		case errors.Is(err, utils.ErrQueryFailed),
+			errors.Is(err, utils.ErrScanFailed):
+			response.Error(w, http.StatusInternalServerError, err.Error())
+		default:
+			response.Error(w, http.StatusInternalServerError, utils.ErrInternalServerError.Error())
+		}
 		return
 	}
 
@@ -122,11 +131,12 @@ func (h *OrderHandler) GetOrderById(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case errors.Is(err, utils.ErrOrderNotFound):
 			response.Error(w, http.StatusNotFound, err.Error())
-			return
-		default:
+		case errors.Is(err, utils.ErrQueryFailed):
 			response.Error(w, http.StatusInternalServerError, err.Error())
-			return
+		default:
+			response.Error(w, http.StatusInternalServerError, utils.ErrInternalServerError.Error())
 		}
+		return
 	}
 
 	response.JSON(w, http.StatusOK, order)

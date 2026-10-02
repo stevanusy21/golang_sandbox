@@ -5,6 +5,7 @@ import (
 
 	"github.com/midtrans/midtrans-go"
 	"github.com/midtrans/midtrans-go/coreapi"
+	"github.com/stevanusy21/golang_sandbox/pkg/utils"
 )
 
 type MidtransGateway struct {
@@ -34,7 +35,7 @@ func (m *MidtransGateway) Charge(orderId string, amount float64, paymentMethod c
 			EnableCallback: true,
 		}
 	default:
-		return nil, fmt.Errorf("unsupported payment method: %v", paymentMethod)
+		return nil, utils.ErrNotSupportedPaymentMethod
 	}
 
 	chargeReq.PaymentType = paymentMethod
@@ -45,12 +46,12 @@ func (m *MidtransGateway) Charge(orderId string, amount float64, paymentMethod c
 
 	res, midtransErr := m.client.ChargeTransaction(chargeReq)
 	if midtransErr != nil {
-		return nil, fmt.Errorf("Midtrans error: %v", midtransErr.GetMessage())
+		return nil, fmt.Errorf("%w: %v", utils.ErrMidtrans, midtransErr.GetMessage())
 	}
 
 	return &PaymentResult{
 		TransactionId: res.TransactionID,
-		Status: res.TransactionStatus,
-		Message: res.StatusMessage,
+		Status:        res.TransactionStatus,
+		Message:       res.StatusMessage,
 	}, nil
 }

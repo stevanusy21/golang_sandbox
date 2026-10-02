@@ -29,7 +29,7 @@ func (r *UserRepository) CreateUser(u *domain.User) error {
 	err := r.db.QueryRow(query, u.Username, u.Email, u.Password, u.Status).Scan(&u.ID)
 	if err != nil {
 		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
-		return fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
+		return utils.ErrQueryFailed
 	}
 
 	return nil
@@ -47,7 +47,7 @@ func (r *UserRepository) UpdateUser(id int, u *domain.User) error {
 	//Tidak return rows affected karena user sudah di get sebelumnya
 	if _, err := r.db.Exec(query, u.Username, u.Email, id); err != nil {
 		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
-		return fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
+		return utils.ErrQueryFailed
 	}
 
 	return nil
@@ -63,7 +63,7 @@ func (r *UserRepository) ChangePasswordUser(id int, password string) error {
 	//Tidak return rows affected karena user sudah di get sebelumnya
 	if _, err := r.db.Exec(query, password, id); err != nil {
 		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
-		return fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
+		return utils.ErrQueryFailed
 	}
 
 	return nil
@@ -80,13 +80,13 @@ func (r *UserRepository) ChangeStatusUser(id int, status domain.UserStatus) erro
 	result, err := r.db.Exec(query, status, id)
 	if err != nil {
 		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
-		return fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
+		return utils.ErrQueryFailed
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
-		return fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
+		return utils.ErrQueryFailed
 	}
 
 	if rowsAffected == 0 {
@@ -129,7 +129,7 @@ func (r *UserRepository) GetUserBy(column string, value any) (domain.User, error
 			return domain.User{}, utils.ErrUserNotFound
 		}
 		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
-		return domain.User{}, fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
+		return domain.User{}, utils.ErrQueryFailed
 	}
 
 	return u, nil

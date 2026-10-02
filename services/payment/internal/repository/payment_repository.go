@@ -3,7 +3,6 @@ package repository
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 
 	"github.com/stevanusy21/golang_sandbox/pkg/utils"
 	"github.com/stevanusy21/golang_sandbox/services/payment/internal/domain"
@@ -28,8 +27,8 @@ func (r *PaymentRepository) SavePayment(p *domain.PaymentRecord) error {
 
 	err := r.db.QueryRow(query, p.OrderId, p.Amount, p.PaymentMethod, p.Status, p.TransactionId).Scan(&p.Id)
 	if err != nil {
-		utils.LogError(LogLocation, utils.ErrPaymentSaveFailed.Error(), err)
-		return fmt.Errorf("%w: %v", utils.ErrPaymentSaveFailed, err)
+		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
+		return utils.ErrQueryFailed
 	}
 
 	return nil
@@ -44,8 +43,8 @@ func (r *PaymentRepository) UpdatePayment(p *domain.PaymentRecord) error {
 
 	_, err := r.db.Exec(query, p.Status, p.TransactionId, p.OrderId)
 	if err != nil {
-		utils.LogError(LogLocation, utils.ErrPaymentUpdateFailed.Error(), err)
-		return fmt.Errorf("%w: %v", utils.ErrPaymentUpdateFailed, err)
+		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
+		return utils.ErrQueryFailed
 	}
 
 	return nil
@@ -84,7 +83,7 @@ func (r *PaymentRepository) GetPaymentByOrderId(orderId string) (*domain.Payment
 			return nil, utils.ErrPaymentNotFound
 		}
 		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
-		return nil, fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
+		return nil, utils.ErrQueryFailed
 	}
 
 	return &record, nil

@@ -3,7 +3,6 @@ package repository
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 
 	"github.com/stevanusy21/golang_sandbox/pkg/utils"
 	"github.com/stevanusy21/golang_sandbox/services/product/internal/domain"
@@ -51,7 +50,7 @@ func (r *ProductRepository) GetProductById(id int) (domain.Product, error) {
 			return domain.Product{}, utils.ErrProductNotFound
 		}
 		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
-		return domain.Product{}, fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
+		return domain.Product{}, utils.ErrQueryFailed
 	}
 
 	return p, nil
@@ -96,7 +95,7 @@ func (r *ProductRepository) GetAllProducts(filter domain.ProductFilter) ([]domai
 	rows, err := r.db.Query(query, args...)
 	if err != nil {
 		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
-		return nil, fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
+		return nil, utils.ErrQueryFailed
 	}
 
 	defer rows.Close()
@@ -116,7 +115,7 @@ func (r *ProductRepository) GetAllProducts(filter domain.ProductFilter) ([]domai
 			&p.DeletedAt,
 		); err != nil {
 			utils.LogError(LogLocation, utils.ErrScanFailed.Error(), err)
-			return nil, fmt.Errorf("%w: %v", utils.ErrScanFailed, err)
+			return nil, utils.ErrScanFailed
 		}
 
 		products = append(products, p)
@@ -124,7 +123,7 @@ func (r *ProductRepository) GetAllProducts(filter domain.ProductFilter) ([]domai
 
 	if err := rows.Err(); err != nil {
 		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
-		return nil, fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
+		return nil, utils.ErrQueryFailed
 	}
 
 	return products, nil
@@ -140,7 +139,7 @@ func (r *ProductRepository) CreateProduct(p *domain.Product) error {
 	err := r.db.QueryRow(query, p.Name, p.Price, p.Stock, p.Status).Scan(&p.ID)
 	if err != nil {
 		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
-		return fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
+		return utils.ErrQueryFailed
 	}
 
 	return nil
@@ -161,13 +160,13 @@ func (r *ProductRepository) UpdateProduct(id int, p *domain.ProductUpdateRequest
 	result, err := r.db.Exec(query, p.Name, p.Price, p.Stock, p.Status, id)
 	if err != nil {
 		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
-		return fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
+		return utils.ErrQueryFailed
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
-		return fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
+		return utils.ErrQueryFailed
 	}
 
 	if rowsAffected == 0 {
@@ -186,13 +185,13 @@ func (r *ProductRepository) DeleteProduct(id int) error {
 	result, err := r.db.Exec(query, id)
 	if err != nil {
 		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
-		return fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
+		return utils.ErrQueryFailed
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
-		return fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
+		return utils.ErrQueryFailed
 	}
 
 	if rowsAffected == 0 {
@@ -212,13 +211,13 @@ func (r *ProductRepository) DeductStock(id int, quantity int) error {
 	result, err := r.db.Exec(query, quantity, id)
 	if err != nil {
 		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
-		return fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
+		return utils.ErrQueryFailed
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
-		return fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
+		return utils.ErrQueryFailed
 	}
 
 	if rowsAffected == 0 {
@@ -228,7 +227,7 @@ func (r *ProductRepository) DeductStock(id int, quantity int) error {
 	return nil
 }
 
-//NotUsedYet
+// NotUsedYet
 func (r *ProductRepository) AddStock(id int, quantity int) error {
 	query := `
 		UPDATE products 
@@ -239,13 +238,13 @@ func (r *ProductRepository) AddStock(id int, quantity int) error {
 	result, err := r.db.Exec(query, quantity, id)
 	if err != nil {
 		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
-		return fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
+		return utils.ErrQueryFailed
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
-		return fmt.Errorf("%w: %v", utils.ErrQueryFailed, err)
+		return utils.ErrQueryFailed
 	}
 
 	if rowsAffected == 0 {

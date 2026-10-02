@@ -2,8 +2,6 @@ package usecase
 
 import (
 	"encoding/json"
-	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/midtrans/midtrans-go/coreapi"
@@ -41,16 +39,16 @@ func (u *PaymentUsecase) ProcessPayment(orderId string, amount float64, paymentM
 	}
 
 	if err := u.repo.SavePayment(record); err != nil {
-		return nil, fmt.Errorf("%w: %v", utils.ErrPaymentProcessFailed, err)
+		return nil, err
 	}
 
 	result, err := u.gateway.Charge(orderId, amount, coreapi.CoreapiPaymentType(paymentMethod))
 	if err != nil {
 		record.Status = "FAILED"
-		if saveErr := u.repo.UpdatePayment(record); saveErr != nil {
-			return nil, fmt.Errorf("%w: %v", utils.ErrPaymentProcessFailed, saveErr)
+		if updateErr := u.repo.UpdatePayment(record); updateErr != nil {
+			return nil, err
 		}
-		return nil, fmt.Errorf("%w: %v", utils.ErrPaymentProcessFailed, err)
+		return nil, err
 	}
 
 	transactionId := result.TransactionId
@@ -58,7 +56,7 @@ func (u *PaymentUsecase) ProcessPayment(orderId string, amount float64, paymentM
 	record.Status = strings.ToUpper(result.Status)
 
 	if err := u.repo.UpdatePayment(record); err != nil {
-		return nil, fmt.Errorf("%w: %v", utils.ErrPaymentProcessFailed, err)
+		return nil, err
 	}
 
 	return record, nil
@@ -67,16 +65,12 @@ func (u *PaymentUsecase) ProcessPayment(orderId string, amount float64, paymentM
 func (u *PaymentUsecase) HandlePaymentStatusCallback(callback domain.MidtransCallbackDTO) error {
 	record, err := u.repo.GetPaymentByOrderId(callback.OrderID)
 	if err != nil {
-		if errors.Is(err, utils.ErrPaymentNotFound) {
-			utils.LogWarn(LogLocation, "Callback diterima untuk order yang tidak ditemukan: "+callback.OrderID)
-			return nil
-		}
-		return fmt.Errorf("%w: %v", utils.ErrPaymentCallbackFailed, err)
+		return err
 	}
 
 	record.Status = strings.ToUpper(callback.TransactionStatus)
 	if err := u.repo.UpdatePayment(record); err != nil {
-		return fmt.Errorf("%w: %v", utils.ErrPaymentCallbackFailed, err)
+		return err
 	}
 
 	if record.Status != "PENDING" {
@@ -96,7 +90,7 @@ func (u *PaymentUsecase) PublishPaymentUpdatedEvent(orderId string, status strin
 	body, err := json.Marshal(event)
 	if err != nil {
 		utils.LogError(LogLocation, utils.ErrFailedToMarshal.Error(), err)
-		return fmt.Errorf("%w: %v", utils.ErrPaymentPublishEventFailed, err)
+		return utils.ErrFailedToMarshal
 	}
 
 	err = u.rabbit.Channel.Publish(
@@ -110,8 +104,8 @@ func (u *PaymentUsecase) PublishPaymentUpdatedEvent(orderId string, status strin
 		},
 	)
 	if err != nil {
-		utils.LogErrorNoValue(LogLocation, utils.ErrPaymentPublishEventFailed.Error())
-		return fmt.Errorf("%w: %v", utils.ErrPaymentPublishEventFailed, err)
+		utils.LogError(LogLocation, utils.ErrPaymentPublishEventFailed.Error(), err)
+		return utils.ErrPaymentPublishEventFailed
 	}
 
 	utils.LogInfo(LogLocation, "Berhasil publish event payment.updated ke RabbitMQ untuk Order ID: "+orderId)
