@@ -1,4 +1,4 @@
 $kind: http-request
-url: "{{urlProduct}}/products/2"
+url: "{{urlProduct}}/products/1"
 method: GET
 order: 1790320434237

@@ -1,5 +1,5 @@
 $kind: http-request
-url: "{{urlProduct}}/products/2"
+url: "{{urlProduct}}/products/1"
 method: PUT
 body:
   type: json
@@ -7,11 +7,11 @@ body:
 
     \    \"name\": \"Kopi Susu\",\r
 
-    \    \"price\": 25000,\r
+    \    \"price\": 20000,\r
 
     \    \"stock\": 10,\r
 
-    \    \"status\": \"ACTIVE\"\r
+    \    \"status\": \"AVAILABLE\"\r
 
     \  }"
 order: 4213789251398235

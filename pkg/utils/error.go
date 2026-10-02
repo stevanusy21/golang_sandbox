@@ -16,18 +16,19 @@ var (
 	ErrTokenCreatedFailed    = errors.New("Gagal membuat token")
 	ErrTokenParseFailed    = errors.New("Gagal memparsing token")
 	ErrJwtSecretMissing 	= errors.New("JWT Secret tidak ditemukan")
-	
 
 	//User
 	ErrUserNotFound          = errors.New("User tidak ditemukan")
 	ErrUsernameAlreadyExists = errors.New("Username sudah terdaftar")
 	ErrEmailAlreadyExists    = errors.New("Email sudah terdaftar")
 	ErrHashPassword          = errors.New("Gagal melakukan hash password")
+	ErrUserGetFailed		 = errors.New("Gagal mendapatkan user")
 	ErrUserCreationFailed    = errors.New("Gagal menyimpan user")
 	ErrUserUpdateFailed      = errors.New("Gagal update user")
 	ErrUserDeleteFailed      = errors.New("Gagal menghapus user")
 	ErrUserChangePasswordFailed = errors.New("Gagal mengubah password user")
 	ErrUserChangeStatusFailed = errors.New("Gagal mengubah status user")
+	ErrLoginFailed			 = errors.New("Gagal login")
 	
 	//Order
 	ErrOrderNotFound       = errors.New("Order tidak ditemukan")

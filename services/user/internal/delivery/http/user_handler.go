@@ -3,6 +3,7 @@ package delivery
 import (
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/stevanusy21/golang_sandbox/pkg/request"
 	"github.com/stevanusy21/golang_sandbox/pkg/response"
@@ -38,7 +39,8 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.userUsecase.CreateUser(&payload); err != nil {
+	userId, err := h.userUsecase.CreateUser(&payload)
+	if err != nil {
 		switch {
 		case errors.Is(err, utils.ErrUsernameAlreadyExists), errors.Is(err, utils.ErrEmailAlreadyExists):
 			response.Error(w, http.StatusConflict, err.Error())
@@ -52,7 +54,10 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.JSON(w, http.StatusCreated, map[string]string{"message": "User berhasil dibuat"})
+	response.JSON(w, http.StatusCreated, map[string]string{
+		"message": "User berhasil dibuat",
+		"user_id": strconv.Itoa(userId),
+	})
 }
 
 func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
@@ -72,10 +77,6 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case errors.Is(err, utils.ErrUsernameAlreadyExists), errors.Is(err, utils.ErrEmailAlreadyExists):
 			response.Error(w, http.StatusConflict, err.Error())
-		case errors.Is(err, utils.ErrUserNotFound):
-			response.Error(w, http.StatusNotFound, err.Error())
-		case errors.Is(err, utils.ErrInvalidRequest):
-			response.Error(w, http.StatusBadRequest, err.Error())
 		case errors.Is(err, utils.ErrUserUpdateFailed):
 			response.Error(w, http.StatusInternalServerError, err.Error())
 		default:
@@ -102,11 +103,11 @@ func (h *UserHandler) ChangePasswordUser(w http.ResponseWriter, r *http.Request)
 
 	if err := h.userUsecase.ChangePasswordUser(id, &payload); err != nil {
 		switch {
+		case errors.Is(err, utils.ErrHashPassword):
+			response.Error(w, http.StatusInternalServerError, err.Error())
 		case errors.Is(err, utils.ErrInvalidRequest):
 			response.Error(w, http.StatusBadRequest, err.Error())
-		case errors.Is(err, utils.ErrUserNotFound):
-			response.Error(w, http.StatusNotFound, err.Error())
-		case errors.Is(err, utils.ErrUserUpdateFailed):
+		case errors.Is(err, utils.ErrUserChangePasswordFailed):
 			response.Error(w, http.StatusInternalServerError, err.Error())
 		default:
 			response.Error(w, http.StatusInternalServerError, "Terjadi kesalahan internal pada server")
@@ -132,11 +133,9 @@ func (h *UserHandler) ChangeStatusUser(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.userUsecase.ChangeStatusUser(id, &payload); err != nil {
 		switch {
-		case errors.Is(err, utils.ErrInvalidRequest):
-			response.Error(w, http.StatusBadRequest, err.Error())
 		case errors.Is(err, utils.ErrUserNotFound):
 			response.Error(w, http.StatusNotFound, err.Error())
-		case errors.Is(err, utils.ErrUserUpdateFailed):
+		case errors.Is(err, utils.ErrUserChangeStatusFailed):
 			response.Error(w, http.StatusInternalServerError, err.Error())
 		default:
 			response.Error(w, http.StatusInternalServerError, "Terjadi kesalahan internal pada server")
@@ -157,7 +156,7 @@ func (h *UserHandler) GetUserById(w http.ResponseWriter, r *http.Request) {
 	user, err := h.userUsecase.GetUserById(id)
 	if err != nil {
 		switch {
-		case errors.Is(err, utils.ErrUserNotFound):
+		case errors.Is(err, utils.ErrUserGetFailed):
 			response.Error(w, http.StatusNotFound, err.Error())
 		default:
 			response.Error(w, http.StatusInternalServerError, "Terjadi kesalahan internal pada server")
@@ -178,11 +177,9 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	result, err := h.userUsecase.Login(&payload)
 	if err != nil {
 		switch {
-		case errors.Is(err, utils.ErrInvalidRequest):
-			response.Error(w, http.StatusBadRequest, "Email atau password salah")
-		case errors.Is(err, utils.ErrUserNotFound):
-			response.Error(w, http.StatusBadRequest, "Email atau password salah")
-		case errors.Is(err, utils.ErrUserUpdateFailed):
+		case errors.Is(err, utils.ErrLoginFailed):
+			response.Error(w, http.StatusUnauthorized, err.Error())
+		case errors.Is(err, utils.ErrTokenCreatedFailed):
 			response.Error(w, http.StatusInternalServerError, err.Error())
 		default:
 			response.Error(w, http.StatusInternalServerError, "Terjadi kesalahan internal pada server")
