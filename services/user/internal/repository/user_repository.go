@@ -161,8 +161,8 @@ func (r *UserRepository) CheckExistsBy(column string, value any, excludeId *int)
 	return exists, nil
 }
 
-func (r *UserRepository) GetAllUsers(filter domain.UserFilter) ([]domain.User, error) {
-	qb := utils.NewPaginationQueryBuilder(`
+func (r *UserRepository) GetAllUsers(filter domain.UserFilter) ([]domain.User, int, error) {
+	qbData := utils.NewPaginationQueryBuilder(`
 		SELECT 
 			id, 
 			username, 
@@ -175,33 +175,29 @@ func (r *UserRepository) GetAllUsers(filter domain.UserFilter) ([]domain.User, e
 		WHERE 1=1
 	`)
 
-	if filter.ID > 0 {
-		qb.Where("AND", "id", "=", filter.ID)
+	applyUserFilters(qbData, filter)
+	qbData.OrderBy(filter.SortBy, filter.SortDir)
+	qbData.LimitOffset(filter.Limit, filter.Offset)
+	dataQuery, dataArgs := qbData.Build()
+
+	qbCount := utils.NewPaginationQueryBuilder(`
+		SELECT COUNT(*) 
+		FROM users
+		WHERE 1=1
+	`)
+	applyUserFilters(qbCount, filter)
+	countQuery, countArgs := qbCount.Build()
+
+	var total int
+	if err := r.db.QueryRow(countQuery, countArgs...).Scan(&total); err != nil {
+		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
+		return nil, 0, utils.ErrQueryFailed
 	}
 
-	if filter.Username != "" {
-		qb.Where("AND", "username", "ILIKE", "%"+filter.Username+"%")
-	}
-
-	if filter.Email != "" {
-		qb.Where("AND", "email", "ILIKE", "%"+filter.Email+"%")
-	}
-
-	if len(filter.Status) > 0 {
-		qb.WhereAny("AND", "status", filter.Status)
-	}
-
-	qb.WhereNull("AND", "deleted_at")
-
-	qb.OrderBy(filter.SortBy, filter.SortDir)
-	qb.LimitOffset(filter.Limit, filter.Offset)
-
-	query, args := qb.Build()
-
-	rows, err := r.db.Query(query, args...)
+	rows, err := r.db.Query(dataQuery, dataArgs...)
 	if err != nil {
 		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
-		return nil, utils.ErrQueryFailed
+		return nil, 0, utils.ErrQueryFailed
 	}
 
 	defer rows.Close()
@@ -220,7 +216,7 @@ func (r *UserRepository) GetAllUsers(filter domain.UserFilter) ([]domain.User, e
 			&u.DeletedAt,
 		); err != nil {
 			utils.LogError(LogLocation, utils.ErrScanFailed.Error(), err)
-			return nil, utils.ErrScanFailed
+			return nil, 0, utils.ErrScanFailed
 		}
 
 		users = append(users, u)
@@ -228,8 +224,28 @@ func (r *UserRepository) GetAllUsers(filter domain.UserFilter) ([]domain.User, e
 
 	if err := rows.Err(); err != nil {
 		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
-		return nil, utils.ErrQueryFailed
+		return nil, 0, utils.ErrQueryFailed
 	}
 
-	return users, nil
+	return users, total, nil
+}
+
+func applyUserFilters(qb *utils.PaginationQueryBuilder, filter domain.UserFilter) {
+	if filter.ID > 0 {
+		qb.Where("AND", "id", "=", filter.ID)
+	}
+
+	if filter.Username != "" {
+		qb.Where("AND", "username", "ILIKE", "%"+filter.Username+"%")
+	}
+
+	if filter.Email != "" {
+		qb.Where("AND", "email", "ILIKE", "%"+filter.Email+"%")
+	}
+
+	if len(filter.Status) > 0 {
+		qb.WhereAny("AND", "status", filter.Status)
+	}
+
+	qb.WhereNull("AND", "deleted_at")
 }

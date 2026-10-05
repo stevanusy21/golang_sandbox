@@ -26,10 +26,10 @@ func (u *ProductUsecase) GetProductById(id int) (domain.ProductDetailResponse, e
 	return product.ToProductResponse(), nil
 }
 
-func (u *ProductUsecase) GetAllProducts(filter domain.ProductFilter) ([]domain.ProductDetailResponse, error) {
-	products, err := u.productRepo.GetAllProducts(filter)
+func (u *ProductUsecase) GetAllProducts(filter domain.ProductFilter) (utils.PaginationResponse, error) {
+	products, total, err := u.productRepo.GetAllProducts(filter)
 	if err != nil {
-		return nil, err
+		return utils.PaginationResponse{}, err
 	}
 
 	response := make([]domain.ProductDetailResponse, 0, len(products))
@@ -37,7 +37,7 @@ func (u *ProductUsecase) GetAllProducts(filter domain.ProductFilter) ([]domain.P
 		response = append(response, p.ToProductResponse())
 	}
 
-	return response, nil
+	return utils.NewPaginationResponse(response, total, filter.Page, filter.Limit), nil
 }
 
 func (u *ProductUsecase) CreateProduct(payload *domain.ProductCreateRequest) (int, error) {

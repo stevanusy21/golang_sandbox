@@ -73,18 +73,20 @@ func (h *ProductHandler) GetAllProducts(w http.ResponseWriter, r *http.Request) 
 		statusSlice = strings.Split(statusQuery, ",")
 	}
 
-	filter := domain.ProductFilter{
-		Id:     r.URL.Query().Get("id"),
-		Name:   r.URL.Query().Get("name"),
-		Price:  r.URL.Query().Get("price"),
-		Status: statusSlice,
-		Pagination: utils.GeneratePaginationData(
+	paginationData := utils.GeneratePaginationData(
 			r.URL.Query().Get("page"),
 			r.URL.Query().Get("limit"),
 			r.URL.Query().Get("sort_by"),
 			r.URL.Query().Get("sort_dir"),
 			allowedSortColumns,
-		),
+	)
+
+	filter := domain.ProductFilter{
+		Id:     r.URL.Query().Get("id"),
+		Name:   r.URL.Query().Get("name"),
+		Price:  r.URL.Query().Get("price"),
+		Status: statusSlice,
+		Pagination: paginationData,
 	}
 
 	products, err := h.productUsecase.GetAllProducts(filter)
@@ -97,7 +99,7 @@ func (h *ProductHandler) GetAllProducts(w http.ResponseWriter, r *http.Request) 
 		}
 		return
 	}
-
+	
 	response.JSON(w, http.StatusOK, products)
 }
 

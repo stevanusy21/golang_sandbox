@@ -90,3 +90,29 @@ func (q *PaginationQueryBuilder) LimitOffset(limit, offset int) {
 func (q *PaginationQueryBuilder) Build() (string, []any) {
 	return q.query.String(), q.args
 }
+
+type PaginationResponse struct {
+	Data       any `json:"data"`
+	Total      int    `json:"total"`
+	Page       int    `json:"page"`
+	Limit      int    `json:"limit"`
+	TotalPages int    `json:"total_pages"`
+}
+
+func NewPaginationResponse(data any, total, page, limit int) PaginationResponse {
+	totalPages := 0
+	if limit > 0 {
+		totalPages = total / limit
+		if total%limit != 0 {
+			totalPages++
+		}
+	}
+
+	return PaginationResponse{
+		Data:       data,
+		Total:      total,
+		Page:       page,
+		Limit:      limit,
+		TotalPages: totalPages,
+	}
+}

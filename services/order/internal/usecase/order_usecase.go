@@ -103,10 +103,10 @@ func (u *OrderUsecase) processPaymentBackground(orderId string, amount float64, 
 	utils.LogInfo(LogLocationBackground, fmt.Sprintf("Payment CREATED untuk order ID %s", orderId))
 }
 
-func (u *OrderUsecase) GetAllOrders(filter domain.OrderFilter) ([]domain.OrderDetailResponse, error) {
-	orders, err := u.orderRepo.GetAllOrders(filter)
+func (u *OrderUsecase) GetAllOrders(filter domain.OrderFilter) (utils.PaginationResponse, error) {
+	orders, total, err := u.orderRepo.GetAllOrders(filter)
 	if err != nil {
-		return nil, err
+		return utils.PaginationResponse{}, err
 	}
 
 	response := make([]domain.OrderDetailResponse, 0, len(orders))
@@ -114,7 +114,7 @@ func (u *OrderUsecase) GetAllOrders(filter domain.OrderFilter) ([]domain.OrderDe
 		response = append(response, order.ToOrderDetailResponse())
 	}
 
-	return response, nil
+	return utils.NewPaginationResponse(response, total, filter.Page, filter.Limit), nil
 }
 
 func (u *OrderUsecase) GetOrderById(id string) (domain.OrderDetailResponse, error) {

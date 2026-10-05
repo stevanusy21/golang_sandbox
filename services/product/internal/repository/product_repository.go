@@ -56,8 +56,8 @@ func (r *ProductRepository) GetProductById(id int) (domain.Product, error) {
 	return p, nil
 }
 
-func (r *ProductRepository) GetAllProducts(filter domain.ProductFilter) ([]domain.Product, error) {
-	qb := utils.NewPaginationQueryBuilder(`
+func (r *ProductRepository) GetAllProducts(filter domain.ProductFilter) ([]domain.Product, int, error) {
+	qbData := utils.NewPaginationQueryBuilder(`
 		SELECT 
 			id, 
 			name, 
@@ -71,33 +71,29 @@ func (r *ProductRepository) GetAllProducts(filter domain.ProductFilter) ([]domai
 		WHERE 1=1
 	`)
 
-	if filter.Id != "" {
-		qb.Where("AND", "id", "=", filter.Id)
+	applyProductFilters(qbData, filter)
+	qbData.OrderBy(filter.SortBy, filter.SortDir)
+	qbData.LimitOffset(filter.Limit, filter.Offset)
+	dataQuery, dataArgs := qbData.Build()
+
+	qbCount := utils.NewPaginationQueryBuilder(`
+		SELECT COUNT(*)
+		FROM products
+		WHERE 1 = 1
+	`)
+	applyProductFilters(qbCount, filter)
+	countQuery, countArgs := qbCount.Build()
+
+	var total int
+	if err := r.db.QueryRow(countQuery, countArgs...).Scan(&total); err != nil {
+		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
+		return nil, 0, utils.ErrQueryFailed
 	}
 
-	if filter.Name != "" {
-		qb.Where("AND", "name", "ILIKE", "%"+filter.Name+"%")
-	}
-
-	if filter.Price != "" {
-		qb.Where("AND", "price", "=", filter.Price)
-	}
-
-	if len(filter.Status) > 0 {
-		qb.WhereAny("AND", "status", filter.Status)
-	}
-
-	qb.WhereNull("AND", "deleted_at")
-
-	qb.OrderBy(filter.SortBy, filter.SortDir)
-	qb.LimitOffset(filter.Limit, filter.Offset)
-
-	query, args := qb.Build()
-
-	rows, err := r.db.Query(query, args...)
+	rows, err := r.db.Query(dataQuery, dataArgs...)
 	if err != nil {
 		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
-		return nil, utils.ErrQueryFailed
+		return nil, 0, utils.ErrQueryFailed
 	}
 
 	defer rows.Close()
@@ -117,7 +113,7 @@ func (r *ProductRepository) GetAllProducts(filter domain.ProductFilter) ([]domai
 			&p.DeletedAt,
 		); err != nil {
 			utils.LogError(LogLocation, utils.ErrScanFailed.Error(), err)
-			return nil, utils.ErrScanFailed
+			return nil, 0, utils.ErrScanFailed
 		}
 
 		products = append(products, p)
@@ -125,10 +121,30 @@ func (r *ProductRepository) GetAllProducts(filter domain.ProductFilter) ([]domai
 
 	if err := rows.Err(); err != nil {
 		utils.LogError(LogLocation, utils.ErrQueryFailed.Error(), err)
-		return nil, utils.ErrQueryFailed
+		return nil, 0, utils.ErrQueryFailed
 	}
 
-	return products, nil
+	return products, total, nil
+}
+
+func applyProductFilters(qb *utils.PaginationQueryBuilder, filter domain.ProductFilter) {
+	if filter.Id != "" {
+		qb.Where("AND", "id", "=", filter.Id)
+	}
+
+	if filter.Name != "" {
+		qb.Where("AND", "name", "ILIKE", "%"+filter.Name+"%")
+	}
+
+	if filter.Price != "" {
+		qb.Where("AND", "price", "=", filter.Price)
+	}
+
+	if len(filter.Status) > 0 {
+		qb.WhereAny("AND", "status", filter.Status)
+	}
+
+	qb.WhereNull("AND", "deleted_at")
 }
 
 func (r *ProductRepository) CreateProduct(p *domain.Product) error {

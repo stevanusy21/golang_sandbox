@@ -1,5 +1,5 @@
 $kind: http-request
-url: "{{urlProduct}}/products?page=0&limit=10&sort_by=id&sort_dir=desc&status=AVAILABLE"
+url: "{{urlProduct}}/products?page=0&limit=10&sort_by=id&sort_dir=asc"
 method: GET
 queryParams:
   - key: page
@@ -15,11 +15,11 @@ queryParams:
     disabled: false
     description: ""
   - key: sort_dir
-    value: desc
+    value: asc
     disabled: false
     description: ""
   - key: status
     value: AVAILABLE
-    disabled: false
+    disabled: true
     description: ""
 order: 2749638150688744

@@ -1,5 +1,5 @@
 $kind: http-request
-url: "{{urlOrder}}/orders?page=1&limit=5"
+url: "{{urlOrder}}/orders?page=1&limit=5&sort_by=id&sort_dir=desc"
 method: GET
 queryParams:
   - key: page
@@ -9,6 +9,26 @@ queryParams:
   - key: limit
     value: "5"
     disabled: false
+    description: ""
+  - key: sort_by
+    value: id
+    disabled: false
+    description: ""
+  - key: sort_dir
+    value: desc
+    disabled: false
+    description: ""
+  - key: id
+    value: "83"
+    disabled: true
+    description: ""
+  - key: user_id
+    value: null
+    disabled: true
+    description: ""
+  - key: product_id
+    value: null
+    disabled: true
     description: ""
   - key: status
     value: PAID

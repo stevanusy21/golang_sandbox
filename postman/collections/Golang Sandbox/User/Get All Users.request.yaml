@@ -1,5 +1,5 @@
 $kind: http-request
-url: "{{urlUser}}/users?page=0&limit=10&sort_by=id&sort_dir=desc&id=4"
+url: "{{urlUser}}/users?page=0&limit=10&sort_by=id&sort_dir=desc"
 method: GET
 queryParams:
   - key: page
@@ -20,7 +20,7 @@ queryParams:
     description: ""
   - key: id
     value: "4"
-    disabled: false
+    disabled: true
     description: ""
   - key: username
     value: null

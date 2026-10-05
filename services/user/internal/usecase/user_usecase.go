@@ -101,10 +101,10 @@ func (u *UserUsecase) GetUserById(id int) (domain.UserDetailResponse, error) {
 	return user.ToUserDetailResponse(), nil
 }
 
-func (u *UserUsecase) GetAllUsers(payload *domain.UserFilter) ([]domain.UserDetailResponse, error) {
-	users, err := u.repo.GetAllUsers(*payload)
+func (u *UserUsecase) GetAllUsers(filter *domain.UserFilter) (utils.PaginationResponse, error) {
+	users, total, err := u.repo.GetAllUsers(*filter)
 	if err != nil {
-		return nil, err
+		return utils.PaginationResponse{}, err
 	}
 
 	var userDetailResponses []domain.UserDetailResponse
@@ -112,7 +112,7 @@ func (u *UserUsecase) GetAllUsers(payload *domain.UserFilter) ([]domain.UserDeta
 		userDetailResponses = append(userDetailResponses, user.ToUserDetailResponse())
 	}
 
-	return userDetailResponses, nil
+	return utils.NewPaginationResponse(userDetailResponses, total, filter.Page, filter.Limit), nil
 }
 
 func (u *UserUsecase) Login(payload *domain.LoginRequest) (domain.LoginResponse, error) {
