@@ -1,4 +1,8 @@
 $kind: http-request
-url: "{{urlProduct}}/products/1"
+url: "{{urlLocalhost}}/products/1"
 method: GET
+auth:
+  type: inherit
+  credentials:
+    id: 9a10fcef-b86a-4662-b729-f1dacfbf1e81
 order: 1790320434237

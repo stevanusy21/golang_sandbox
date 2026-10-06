@@ -12,6 +12,9 @@ variables:
   - key: urlUser
     value: ""
     disabled: false
+  - key: urlLocalhost
+    value: ""
+    disabled: false
 auth:
   - id: 9a10fcef-b86a-4662-b729-f1dacfbf1e81
     type: bearer

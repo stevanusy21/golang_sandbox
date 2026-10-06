@@ -1,0 +1,54 @@
+# Konfigurasi statis Traefik.
+# Berisi hal yang jarang berubah: provider, entrypoints, dashboard.
+#
+# Jalankan dari root repo:
+#   traefik --configFile=infra\traefik\static.yml
+#
+# Router, middleware, dan service ada di dynamic.yml, yang di-watch Traefik
+# sehingga perubahan di sana tidak butuh restart.
+
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false
+
+log:
+  level: INFO
+
+# Access log hanya untuk request error, supaya tidak membanjiri terminal.
+accessLog:
+  format: json
+  filters:
+    statusCodes:
+      - "400-499"
+      - "500-599"
+
+api:
+  dashboard: true
+  # Dashboard hanya lewat entrypoint internal di bawah, bukan port terpisah.
+  insecure: false
+
+entryPoints:
+  # HTTP biasa, hanya untuk redirect ke HTTPS dan untuk ACME httpChallenge.
+  web:
+    address: ":80"
+
+  # Entry point publik: HTTPS.
+  websecure:
+    address: ":443"
+    http:
+      tls: {}
+
+  # Dashboard dan API internal Traefik. Bind ke 127.0.0.1 supaya tidak bisa
+  # diakses dari jaringan.
+  traefik:
+    address: "127.0.0.1:8080"
+
+providers:
+  file:
+    # Path absolut Windows. Ganti kalau repo dipindah atau dipakai di Linux.
+    filename: C:/Projects/golang_sandbox/infra/traefik/dynamic.yml
+    watch: true
+
+# Endpoint untuk health check Traefik sendiri.
+ping:
+  entryPoint: web

@@ -1,0 +1,189 @@
+# Konfigurasi dinamis Traefik.
+# File ini dibaca oleh Traefik dan di-watch setiap ada perubahan, jadi
+# restart tidak diperlukan setelah edit.
+#
+# Sepasangan dengan static.yml, yang mendefinisikan entrypoints dan provider
+# yang menunjuk ke file ini.
+#
+# Catatan arsitektur:
+#   /products          -> Product Service HTTP (8084)
+#   /users, /auth      -> User Service HTTP (8082)
+#   /orders, /checkout -> Order Service HTTP (8085)
+#   /callback/midtrans -> Payment Service webhook HTTP (8083, tanpa JWT)
+#
+# gRPC (50051, 50052) murni internal: order -> product/payment.
+# Tidak ada service gateway di tengah.
+#
+# Autentikasi:
+#   JWT diverifikasi di tiap service via pkg/middleware.AuthMiddleware.
+#   Semua service memakai JWT_SECRET yang sama.
+
+http:
+  middlewares:
+    # Semua traffic HTTP dialihkan ke HTTPS.
+    redirect-to-https:
+      redirectScheme:
+        scheme: https
+        permanent: true
+
+    # Rate limit umum: 100 request per menit per IP, burst 50.
+    rate-limit:
+      rateLimit:
+        average: 100
+        period: 1m
+        burst: 50
+
+    # Rate limit ketat untuk endpoint tulis: 10 request per menit per IP.
+    rate-limit-strict:
+      rateLimit:
+        average: 10
+        period: 1m
+        burst: 5
+
+    # Preflight OPTIONS dilayani Traefik, tidak diteruskan ke aplikasi.
+    # Penting: tanpa ini, CORS preflight akan masuk ke aplikasi, kena
+    # AuthMiddleware, dan dibalas 401 sehingga CORS gagal total di browser.
+    cors-preflight:
+      headers:
+        accessControlAllowOriginList:
+          - "*"
+        accessControlAllowMethods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+          - OPTIONS
+        accessControlAllowHeaders:
+          - Authorization
+          - Content-Type
+        accessControlMaxAge: 3600
+
+    # Header CORS untuk request yang lolos preflight.
+    cors:
+      headers:
+        customRequestHeaders:
+          Access-Control-Request-Headers: "Authorization, Content-Type"
+        customResponseHeaders:
+          Access-Control-Allow-Origin: "*"
+          Access-Control-Allow-Methods: "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+          Access-Control-Allow-Headers: "Authorization, Content-Type"
+
+    # Header keamanan standar.
+    security-headers:
+      headers:
+        frameDeny: true
+        contentTypeNosniff: true
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+        customResponseHeaders:
+          Referrer-Policy: "no-referrer"
+
+    # Batasi ukuran body sebelum sampai ke aplikasi (1 MiB).
+    request-limit:
+      buffering:
+        maxRequestBodyBytes: 1048576
+
+  routers:
+    http-to-https:
+      entryPoints: [web]
+      rule: Host(`api.localhost`)
+      middlewares: [redirect-to-https]
+      service: user-service
+
+    # Webhook Midtrans. Sengaja TANPA auth dan TANPA cors: Midtrans mengirim
+    # signature header, bukan Bearer token. Di produksi endpoint ini juga perlu
+    # allowlist IP Midtrans.
+    payment-callback:
+      entryPoints:
+        - websecure
+      rule: Host(`api.localhost`) && Path(`/callback/midtrans`)
+      middlewares:
+        - security-headers
+        - request-limit
+      service: payment-service
+      tls: {}
+
+    # Product Service HTTP langsung (CRUD REST di 8084).
+    # Route di product_handler.go: GET /products, GET /products/{id},
+    # POST /products, PUT /products/{id}, DELETE /products/{id}.
+    product-api:
+      entryPoints:
+        - websecure
+      rule: Host(`api.localhost`) && PathPrefix(`/products`)
+      middlewares:
+        - security-headers
+        - cors-preflight
+        - cors
+        - rate-limit
+        - request-limit
+      service: product-service
+      tls: {}
+
+    # Service HTTP-only
+    user-api:
+      entryPoints:
+        - websecure
+      rule: Host(`api.localhost`) && (PathPrefix(`/users`) || PathPrefix(`/auth`))
+      middlewares:
+        - security-headers
+        - cors-preflight
+        - cors
+        - rate-limit-strict
+        - request-limit
+      service: user-service
+      tls: {}
+
+    # /checkout butuh matcher sendiri: route Order adalah POST /checkout,
+    # GET /orders, GET /orders/{id} -- jadi /checkout tidak tertangkap
+    # PathPrefix(/orders).
+    order-api:
+      entryPoints:
+        - websecure
+      rule: Host(`api.localhost`) && (PathPrefix(`/orders`) || Path(`/checkout`))
+      middlewares:
+        - security-headers
+        - cors-preflight
+        - cors
+        - rate-limit-strict
+        - request-limit
+      service: order-service
+      tls: {}
+
+    # Dashboard Traefik, hanya di entrypoint internal.
+    traefik-dashboard:
+      entryPoints:
+        - traefik
+      rule: PathPrefix(`/`)
+      service: api@internal
+
+  services:
+    user-service:
+      loadBalancer:
+        servers:
+          - url: "http://localhost:8082"
+
+    payment-service:
+      loadBalancer:
+        servers:
+          - url: "http://localhost:8083"
+
+    product-service:
+      loadBalancer:
+        servers:
+          - url: "http://localhost:8084"
+
+    order-service:
+      loadBalancer:
+        servers:
+          - url: "http://localhost:8085"
+
+tls:
+  certificates:
+    # Sertifikat lokal untuk api.localhost, dibuat dengan mkcert.
+    # Path absolut: ganti kalau repo dipindah atau dijalankan di Linux.
+    #
+    # Untuk domain sungguhan, pakai certificatesResolvers + acme (Let's
+    # Encrypt) di file ini, lalu set `tls.certResolver` di router.
+    - certFile: C:/Projects/golang_sandbox/infra/traefik/certs/localhost.crt
+      keyFile: C:/Projects/golang_sandbox/infra/traefik/certs/localhost.key

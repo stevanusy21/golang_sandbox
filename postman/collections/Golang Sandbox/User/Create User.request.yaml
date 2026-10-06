@@ -1,5 +1,5 @@
 $kind: http-request
-url: "{{urlUser}}/users"
+url: "{{urlLocalhost}}/users"
 method: POST
 body:
   type: json

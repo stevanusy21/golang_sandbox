@@ -6,17 +6,17 @@ option go_package = "github.com/stevanusy21/golang_sandbox/proto/payment;payment
 // Service ini dikonsumsi secara internal oleh Order Service.
 service PaymentService {
     // ProcessPayment memproses pembayaran untuk sebuah order.
-    rpc ProcessPayment (PaymentRequest) returns (PaymentResponse);
+  rpc ProcessPayment (PaymentRequest) returns (PaymentResponse);
 }
 
 message PaymentRequest {
-    string order_id = 1;
-    double amount = 2;
-    string payment_method = 3;
+  string order_id       = 1;
+  double amount         = 2;
+  string payment_method = 3;
 }
 
 message PaymentResponse {
-    string transaction_id = 1;
-    bool is_success = 2;
-    string message = 3;
+  string transaction_id = 1;
+  bool   is_success     = 2;
+  string message        = 3;
 }

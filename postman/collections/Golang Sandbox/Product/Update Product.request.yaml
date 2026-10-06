@@ -1,5 +1,5 @@
 $kind: http-request
-url: "{{urlProduct}}/products/1"
+url: "{{urlLocalhost}}/products/1"
 method: PUT
 body:
   type: json

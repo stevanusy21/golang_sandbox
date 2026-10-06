@@ -27,8 +27,8 @@ func NewProductHandler(productUsecase *usecase.ProductUsecase) *ProductHandler {
 func (h *ProductHandler) RegisterRoutes(mux *http.ServeMux) {
 	r := router.NewRouter(mux)
 
-	r.Protected("GET /products", h.GetAllProducts)
 	r.Protected("GET /products/{id}", h.GetProductByID)
+	r.Protected("GET /products", h.GetAllProducts)
 	r.Protected("POST /products", h.CreateProduct)
 	r.Protected("PUT /products/{id}", h.UpdateProduct)
 	r.Protected("DELETE /products/{id}", h.DeleteProduct)
@@ -74,18 +74,18 @@ func (h *ProductHandler) GetAllProducts(w http.ResponseWriter, r *http.Request) 
 	}
 
 	paginationData := utils.GeneratePaginationData(
-			r.URL.Query().Get("page"),
-			r.URL.Query().Get("limit"),
-			r.URL.Query().Get("sort_by"),
-			r.URL.Query().Get("sort_dir"),
-			allowedSortColumns,
+		r.URL.Query().Get("page"),
+		r.URL.Query().Get("limit"),
+		r.URL.Query().Get("sort_by"),
+		r.URL.Query().Get("sort_dir"),
+		allowedSortColumns,
 	)
 
 	filter := domain.ProductFilter{
-		Id:     r.URL.Query().Get("id"),
-		Name:   r.URL.Query().Get("name"),
-		Price:  r.URL.Query().Get("price"),
-		Status: statusSlice,
+		Id:         r.URL.Query().Get("id"),
+		Name:       r.URL.Query().Get("name"),
+		Price:      r.URL.Query().Get("price"),
+		Status:     statusSlice,
 		Pagination: paginationData,
 	}
 
@@ -99,7 +99,7 @@ func (h *ProductHandler) GetAllProducts(w http.ResponseWriter, r *http.Request) 
 		}
 		return
 	}
-	
+
 	response.JSON(w, http.StatusOK, products)
 }
 

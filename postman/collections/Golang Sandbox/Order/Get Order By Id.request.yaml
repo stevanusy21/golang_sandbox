@@ -1,4 +1,4 @@
 $kind: http-request
-url: "{{urlOrder}}/orders/ORD-1790155425769"
+url: "{{urlLocalhost}}/orders/ORD-1790155425769"
 method: GET
 order: 3720811593914851

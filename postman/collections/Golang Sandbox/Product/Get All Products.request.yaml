@@ -1,5 +1,5 @@
 $kind: http-request
-url: "{{urlProduct}}/products?page=0&limit=10&sort_by=id&sort_dir=asc"
+url: "{{urlLocalhost}}/products?page=0&limit=10&sort_by=id&sort_dir=asc"
 method: GET
 queryParams:
   - key: page

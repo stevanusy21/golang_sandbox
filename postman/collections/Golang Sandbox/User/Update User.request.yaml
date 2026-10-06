@@ -1,5 +1,5 @@
 $kind: http-request
-url: "{{urlUser}}/users/4/profile"
+url: "{{urlLocalhost}}/users/4/profile"
 method: PATCH
 body:
   type: json
